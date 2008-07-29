@@ -131,12 +131,33 @@ Screw.Unit(function() {
         describe("onDomReady events", function () {
             var func = function () {};
             it('should allow subscriptions to the dom:ready event', function () {
-                MBX.EventHandler.onDomReady(func);
+                eventSubscriptions.push(MBX.EventHandler.onDomReady(func));
                 var id = document.__MotionboxEventHandlerMaker;
                 expect(id).to_not(be_null);
                 expect(MBX.EventHandler.debugSubscriptions()['objects'][id]["dom:loaded"][0]).to(equal, func);
             });
-        })
+        });
+        
+        describe("deferring functions", function () {
+            var MyCustomEvent = 0;
+            var someObj = {};
+            before(function () {
+                eventSubscriptions.push(MBX.EventHandler.subscribe(someObj, "MyCustomEvent", function () { MyCustomEvent++ }, { defer: true }));
+
+            });
+            
+            it("should not fire in this thread", function () {
+                MBX.EventHandler.fireCustom(someObj, "MyCustomEvent");
+                
+                // this one should be 0 since we're not threading yet
+                expect(MyCustomEvent).to(equal, 0);
+            });
+            
+            it("should have fired by now", function () {
+                expect(MyCustomEvent).to(equal, 1); 
+            });
+            
+        });
         
     });
 });

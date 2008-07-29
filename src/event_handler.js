@@ -147,6 +147,19 @@ MBX.EventHandler = (function () {
         }
     };
     
+    /**
+        defers function for later execution
+    */
+    var deferFunctions = function (functionsToCall, evt) {
+        var func;
+        while (functionsToCall.length > 0) {
+            func = functionsToCall.pop();
+            setTimeout(function() {
+                func(evt)
+            }, 0);
+        }
+    };
+    
     /** if there is a listener defined for the evtType, then
         loop through those rules and compare them to target
         bad CSS selectors can throw up really bad JS errors,
@@ -230,18 +243,24 @@ MBX.EventHandler = (function () {
     /** handle the creation of ID or class based subscriptions for a single
         specifier arrays of types and functions
     */
-    var createIdClassorObjectSubscription = function(specifierType, specifier, evtTypes, funcs) {
+    var createIdClassorObjectSubscription = function(specifierType, specifier, evtTypes, funcs, opts) {
         var subscriptionArray = [];
         if (!subscriptions[specifierType][specifier]) {
             subscriptions[specifierType][specifier] = {};
         }
         var specifierObject = subscriptions[specifierType][specifier];
         evtTypes.each(function (evtType) {
+             if (!specifierObject[evtType]) {
+                 specifierObject[evtType] = [];
+             }
+             if (opts.defer && !specifierObject[evtType]['deferrable']) {
+                 specifierObject[evtType]['deferrable'] = [];
+             }
+            
             funcs.each(function (func) {
-                if (!specifierObject[evtType]) {
-                    specifierObject[evtType] = [func];
-                }
-                else {
+                if (opts.defer) {
+                    specifierObject[evtType]['deferrable'].push(func);
+                } else {
                     specifierObject[evtType].push(func);
                 }
                 subscriptionArray.push({'specifierType': specifierType, 'eventType': evtType, 'func': func, 'specifier': specifier});
@@ -252,16 +271,23 @@ MBX.EventHandler = (function () {
     
     /** handle a CSS selector based subscription for a single specifier and arrays of types and functions
     */
-    var createRulesSubscription = function(specifier, evtTypes, funcs) {
+    var createRulesSubscription = function(specifier, evtTypes, funcs, opts) {
         var subscriptionArray = [];
         evtTypes.each(function (evtType) {
             if (!subscriptions.rules[evtType]) {
                 subscriptions.rules[evtType] = {};
             }
             var specifierObject = subscriptions.rules[evtType];
+            
+            if (!specifierObject[specifier]) {
+                specifierObject[specifier] = [];
+            }
+            if (opts.defer && !specifierObject[specifier]['deferrable']) {
+                specifierObject[specifier]['deferrable'] = [];
+            }
             funcs.each(function (func) {
-                if (!specifierObject[specifier]) {
-                    specifierObject[specifier] = [func];
+                if (opts.defer) {
+                    specifierObject[specifier]['deferrable'].push(func);
                 } else {
                     specifierObject[specifier].push(func);
                 }
@@ -363,13 +389,14 @@ MBX.EventHandler = (function () {
             @param {String} specifiers the class, id or CSS selector that you want to subscribe to
             @param {String or Array} evtTypes the types of events you want to subscribe to
             @param {Function or Array} funcs the functions you want to be called with this subscription
+            @param {Object} opts Right now only takes a "defer" option which will fire functions with setTimeout
             
             @returns A handler object that can be used to unsubscribe
             
             @see MBX.EventHandler.fireCustom.
             returns an object you can use to unsubscribe
         */
-        subscribe: function (specifiers, evtTypes, funcs) {
+        subscribe: function (specifiers, evtTypes, funcs, opts) {
             if (!isArray(specifiers)) {
                 specifiers = [specifiers];
             }
@@ -379,6 +406,7 @@ MBX.EventHandler = (function () {
             if (!isArray(funcs)) {
                 funcs = [funcs];
             }
+            opts = opts || {};
             var referenceArray = [];
     
             specifiers.each(function (specifier) {
@@ -402,10 +430,10 @@ MBX.EventHandler = (function () {
                 
                 //check if it matched id or class
                 if (specifierType) {
-                    referenceArray = referenceArray.concat(createIdClassorObjectSubscription(specifierType, specifier, evtTypes, funcs));
+                    referenceArray = referenceArray.concat(createIdClassorObjectSubscription(specifierType, specifier, evtTypes, funcs, opts));
                 } else {
                     // we assume that anything not matching a class, id or object is a css selector rule
-                    referenceArray = referenceArray.concat(createRulesSubscription(specifier, evtTypes, funcs));
+                    referenceArray = referenceArray.concat(createRulesSubscription(specifier, evtTypes, funcs, opts));
                 } //end to rules handling
             }); // each specifier
             // return the array that can be used to unsubscribe
