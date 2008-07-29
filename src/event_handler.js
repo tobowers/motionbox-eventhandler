@@ -1,5 +1,6 @@
-/*  event_handler, version 1.1
- *  Requires Prototype 1.6.0
+/**  event_handler
+    @version 1.2
+ *  @requires Prototype 1.6.0
  
  *  Copyright (c) 2008 Motionbox, Inc.
  *
@@ -27,7 +28,7 @@
  *  For details, see the web site: http://code.google.com/p/motionbox
  *
  *
- *  Authors:  Richard Allaway, Topping Bowers, Baldur Gudbjornsson, Matt Royal
+ *  @author Richard Allaway, Topping Bowers, Baldur Gudbjornsson, Matt Royal
  *
  *  MBX.event_handler is an implementation of event delegation based on the
  *  prototype library.
@@ -54,23 +55,32 @@
  *--------------------------------------------------------------------------*/
   
 if (!("MBX" in window)) {
+    /** @namespace
+        @ignore
+    */
     MBX = {};
 }
   
+/**  @class EventHandler
+     @name MBX.EventHandler */
 MBX.EventHandler = (function () {
-    //private functions below
-    // all the standard events we want to listen to on document.
-    // please note that 'change' and 'blur' DO NOT BUBBLE in IE - so you will need to do something
-    // extra for the Microsoft browsers
+    /** 
+        all the standard events we want to listen to on document.
+        please note that 'change' and 'blur' DO NOT BUBBLE in IE - so you will need to do something
+        extra for the Microsoft browsers
+    */
     var stdEvents = ["mouseout", "click", "mouseover", "keypress", "change", "blur", "focus"];
     
-    // an object with all the event listeners we have listed by eventType
-    // gets filled in on init
+    /** an object with all the event listeners we have listed by eventType
+        gets filled in on init
+    */
     var eventListeners = {};
     
-    // Event bubbles up to the document where the listeners are and fires this function
-     // if the target element matches anything in the subscribers object then the functions fire
-     // it continues to go all the way up the tree
+     /** Event bubbles up to the document where the listeners are and fires this function
+         if the target element matches anything in the subscribers object then the functions fire
+         it continues to go all the way up the tree
+         @function
+     */
      var handleEvent = function (evt) {
          //for debug uncomment out the below
          //console.dir(evt);
@@ -89,41 +99,51 @@ MBX.EventHandler = (function () {
          }
     };
     
-    //subscribe to the listeners
+    /** subscribe to the listeners
+    */
     stdEvents.each(function (evtType) {
         eventListeners[evtType] = document.observe(evtType, handleEvent);
     });
     
-    //this holds the actual subscriptions in the form
-    // ids: {
-    //     myId: {
-    //             myEventType: [function, function, function]
-    //        }
-    // }
-    // same for classes
-    // rules however is the opposite (for speed sake)
-    // so:
-    // rules: {
-    //     eventType: {
-    //         "my rule": [function, function, function]
-    //     }
-    // }
+    /** this holds the actual subscriptions in the form
+    
+        @example
+          ids: {
+              myId: {
+                      myEventType: [function, function, function]
+                 }
+          }
+          
+        same for classes
+        rules however is the opposite (for speed sake)
+        so:
+        
+        @example
+          rules: {
+              eventType: {
+                  "my rule": [function, function, function]
+              }
+          }
+    */
     var subscriptions = {
         ids: {},
         classes: {},
         rules: {}
     };
     
-    //executes an array of functions sending the event to the function
+    /**
+        executes an array of functions sending the event to the function
+    */
     var callFunctions = function (functionsToCall, evt) {
         while (functionsToCall.length > 0) {
             functionsToCall.pop()(evt);
         }
     };
     
-    // if there is a listener defined for the evtType, then
-    // loop through those rules and compare them to target
-    // bad CSS selectors can throw up really bad JS errors,
+    /** if there is a listener defined for the evtType, then
+        loop through those rules and compare them to target
+        bad CSS selectors can throw up really bad JS errors,
+    */
     var functionsFromRules = function (target, evtType) {
         if (!subscriptions.rules[evtType]) {
             return [];
@@ -137,8 +157,9 @@ MBX.EventHandler = (function () {
         return functionsToCall;
     };
     
-    // go to the subscriptions.ids object and grab an array of all the functions that are subscribed to
-    // the eventType evtType... so subscriptions.ids[targetId][evtType] which will be an array of functions
+    /** go to the subscriptions.ids object and grab an array of all the functions that are subscribed to
+        the eventType evtType... so subscriptions.ids[targetId][evtType] which will be an array of functions
+    */
     var functionsFromId = function (targetId, evtType) {
         var returnArray = [];
         if (subscriptions.ids[targetId] && subscriptions.ids[targetId][evtType]) {
@@ -147,7 +168,9 @@ MBX.EventHandler = (function () {
         return returnArray;
     };
     
-    //same as functionsFromId, but uses all classes on the target object and looks in subscriptions.classes object
+    /** same as functionsFromId, but uses all classes on the target object and looks in
+        subscriptions.classes object
+    */
     var functionsFromClasses = function (targetClasses, evtType) {
         var functionsToCall = [];
         var classObject;
@@ -161,8 +184,9 @@ MBX.EventHandler = (function () {
         return functionsToCall;
     };
     
-    // given an element and an event type, call the functions held in the 
-    // subscriptions object
+    /** given an element and an event type, call the functions held in the 
+        subscriptions object
+    */
     var functionsFromElementAndEvent = function (targetElement, evt) {
         var evtType = evt.type;
         if (!targetElement) {
@@ -186,7 +210,9 @@ MBX.EventHandler = (function () {
         }
     };
     
-    // handle the creation of ID or class based subscriptions for a single specifier arrays of types and functions
+    /** handle the creation of ID or class based subscriptions for a single
+        specifier arrays of types and functions
+    */
     var createIdOrClassSubscription = function(specifierType, specifier, evtTypes, funcs) {
         var subscriptionArray = [];
         if (!subscriptions[specifierType][specifier]) {
@@ -207,7 +233,8 @@ MBX.EventHandler = (function () {
         return subscriptionArray;
     };
     
-    // handle a CSS selector based subscription for a single specifier and arrays of types and functions
+    /** handle a CSS selector based subscription for a single specifier and arrays of types and functions
+    */
     var createRulesSubscription = function(specifier, evtTypes, funcs) {
         var subscriptionArray = [];
         evtTypes.each(function (evtType) {
@@ -292,17 +319,28 @@ MBX.EventHandler = (function () {
         window.attachEvent('onunload', destroyObservers);
     }
     
-    return {
+    return /** @lends MBX.EventHandler */ {
         //public functions
     
-        // institue the subscriber:  '#' indicates an id, "." indicates a class, anything else is considered
-        // a CSS Selector
-        // subscribe with:
-        // MBX.EventHandler.subscribe(".myClass", "click", function (){ alert('hi'); });
-        // or:
-        // MBX.EventHandler.subscribe("p#blah.cool", "click", function(evt) {console.dir(evt);});
-        // events may be custom events (see fireCustom).
-        // returns an object you can use to unsubscribe
+        /** institue the subscriber:  '#' indicates an id, "." indicates a class, anything else is considered
+            a CSS Selector
+            subscribe with:
+            @example
+              MBX.EventHandler.subscribe(".myClass", "click", function (){ alert('hi'); });
+            or:
+            @example
+              MBX.EventHandler.subscribe("p#blah.cool", "click", function(evt) {console.dir(evt);});
+            events may be custom events
+            
+            @param {String} specifiers the class, id or CSS selector that you want to subscribe to
+            @param {String or Array} evtTypes the types of events you want to subscribe to
+            @param {Function or Array} funcs the functions you want to be called with this subscription
+            
+            @returns A handler object that can be used to unsubscribe
+            
+            @see MBX.EventHandler.fireCustom.
+            returns an object you can use to unsubscribe
+        */
         subscribe: function (specifiers, evtTypes, funcs) {
             if (!isArray(specifiers)) {
                 specifiers = [specifiers];
@@ -336,6 +374,14 @@ MBX.EventHandler = (function () {
             // return the array that can be used to unsubscribe
             return referenceArray;
         },
+        
+        /** Unsubscribe a previous subscribed handler
+            @param {Object or Array} handlerObjects the handler objects that were originally passed to the
+                                                    subscriptions
+            @example
+              var handlerObj = MBX.EventHandler.subscribe("#blah", "click", function () {alert('hi')!});
+              MBX.EventHandler.unsubscribe(handlerObj) // the subscription above is now removed
+        */
         unsubscribe: function (handlerObjects) {
             handlerObjects.each(function (handlerObject) {
                 if (!(handlerObject.specifierType && handlerObject.eventType && handlerObject.specifier) || typeof handlerObject.func != 'function') {
@@ -362,8 +408,20 @@ MBX.EventHandler = (function () {
             return true;
         },
     
-        // fire a custom event of your choosing.    Will notify any subscribers to that evt
-        // MBX.EventHandler.fireCustom($('element'), 'mycustomeevent');
+        /** fire a custom event of your choosing. Will notify any subscribers to that evt
+            You can also attach a payload to the event that will be added to the events
+            @param {DomElement} theTarget A dom element to fire the event on
+            @param {String} evt the Event to fire
+            @param {Object} opts (optional) the attributes to be attached to the event
+            
+            @example
+              MBX.EventHandler.fireCustom($('element'), 'mycustomeevent');
+              
+            @example
+              MBX.EventHandler.fireCustom($("element"), 'mycustomevent', {
+                  theseAttributes: "will be attached to the event"
+              });
+        */
         fireCustom: function (theTarget, evt, opts) {
             opts = opts || {};
             var theEvent = new CustomEvent(theTarget, evt, opts);
