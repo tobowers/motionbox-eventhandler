@@ -85,25 +85,47 @@ Screw.Unit(function() {
             var funcCall = function () {
                 called++;
             };
-            var someObj = {foo: 'bar'};
-            
-            before(function () {
-                called = 0;
-                eventSubscriptions.push(MBX.EventHandler.subscribe(someObj, 'myEvent', funcCall));
+            describe("non DOM object", function () {
+                var someObj = {foo: 'bar'};
+                var id;
+                before(function () {
+                    called = 0;
+                    eventSubscriptions.push(MBX.EventHandler.subscribe(someObj, 'myEvent', funcCall));
+                    
+                    id = someObj.__MotionboxEventHandlerMaker;
+                    expect(typeof id).to(equal, "number");
+                });
+
+                it("should add the function to the subscriptions", function () {
+                    expect(MBX.EventHandler.debugSubscriptions()['objects'][id]['myEvent'][0]).to(equal, funcCall);
+                });
+
+                it('should respond to events', function () {
+                    MBX.EventHandler.fireCustom(someObj, 'myEvent');
+                    expect(called).to(equal, 1);
+                });
             });
             
-            it("should add the function to the subscriptions", function () {
-                expect(MBX.EventHandler.debugSubscriptions()['objects'][1]['myEvent'][0]).to(equal, funcCall);
+            describe("DOM object", function () {
+                var someObj = document.body;
+                var id;
+                before(function () {
+                    called = 0;
+                    eventSubscriptions.push(MBX.EventHandler.subscribe(someObj, 'myEvent', funcCall));
+                    id = someObj.__MotionboxEventHandlerMaker;
+                    expect(typeof id).to(equal, "number");
+                });
+
+                it("should add the function to the subscriptions", function () {
+                    expect(MBX.EventHandler.debugSubscriptions()['objects'][id]['myEvent'][0]).to(equal, funcCall);
+                });
+
+                it('should respond to events', function () {
+                    MBX.EventHandler.fireCustom(someObj, 'myEvent');
+                    expect(called).to(equal, 1);
+                });
             });
             
-            it('should respond to events', function () {
-                MBX.EventHandler.fireCustom(someObj, 'myEvent');
-                expect(called).to(equal, 1);
-            });
-            
-            it("should add a marker to the object", function () {
-                expect(someObj.__MotionboxEventHandlerMaker).to(equal, 1);
-            });
         });
         
         describe("onDomReady events", function () {
@@ -112,7 +134,7 @@ Screw.Unit(function() {
                 MBX.EventHandler.onDomReady(func);
                 var id = document.__MotionboxEventHandlerMaker;
                 expect(id).to_not(be_null);
-                expect(MBX.EventHandler.debugSubscriptions()['objects'][id]["dom:ready"][0]).to(equal, func);
+                expect(MBX.EventHandler.debugSubscriptions()['objects'][id]["dom:loaded"][0]).to(equal, func);
             });
         })
         

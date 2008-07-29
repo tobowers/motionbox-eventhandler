@@ -69,7 +69,7 @@ MBX.EventHandler = (function () {
         please note that 'change' and 'blur' DO NOT BUBBLE in IE - so you will need to do something
         extra for the Microsoft browsers
     */
-    var stdEvents = ["mouseout", "click", "mouseover", "keypress", "change", "blur", "focus", "dom:loaded"];
+    var stdEvents = ["click", "mouseout", "mouseover", "keypress", "change", "blur", "focus"];
     
     /** an object with all the event listeners we have listed by eventType
         gets filled in on init
@@ -103,6 +103,10 @@ MBX.EventHandler = (function () {
     */
     stdEvents.each(function (evtType) {
         eventListeners[evtType] = document.observe(evtType, handleEvent);
+    });
+    
+    document.observe("dom:loaded", function () {
+        MBX.EventHandler.fireCustom(document, "dom:loaded");
     });
     
     /** this holds the actual subscriptions in the form
@@ -198,7 +202,7 @@ MBX.EventHandler = (function () {
         }
         
         if(targetElement.__MotionboxEventHandlerMaker) {
-            functionsFromIdOrObject("objects", targetElement.__MotionboxEventHandlerMaker, evtType), evt
+            callFunctions(functionsFromIdOrObject("objects", targetElement.__MotionboxEventHandlerMaker, evtType), evt);
             if (!Object.isElement(targetElement)) {
                 return;
             }
@@ -473,7 +477,7 @@ MBX.EventHandler = (function () {
             if (!Object.isArray(funcs)) {
                 funcs = [funcs];
             }
-            return MBX.EventHandler.subscribe(document, "dom:ready", funcs);
+            return MBX.EventHandler.subscribe(document, "dom:loaded", funcs);
         },
         
         //TEST FUNCTION ONLY!
