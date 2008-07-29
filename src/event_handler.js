@@ -114,7 +114,7 @@ MBX.EventHandler = (function () {
                  }
           }
           
-        same for classes
+        same for classes and objects (objects add a unique identifier);
         rules however is the opposite (for speed sake)
         so:
         
@@ -128,8 +128,11 @@ MBX.EventHandler = (function () {
     var subscriptions = {
         ids: {},
         classes: {},
-        rules: {}
+        rules: {},
+        objects: {}
     };
+    
+    var subscriptionMarker = 1;
     
     /**
         executes an array of functions sending the event to the function
@@ -160,10 +163,11 @@ MBX.EventHandler = (function () {
     /** go to the subscriptions.ids object and grab an array of all the functions that are subscribed to
         the eventType evtType... so subscriptions.ids[targetId][evtType] which will be an array of functions
     */
-    var functionsFromId = function (targetId, evtType) {
+    var functionsFromIdOrObject = function (specifierType, targetId, evtType) {
         var returnArray = [];
-        if (subscriptions.ids[targetId] && subscriptions.ids[targetId][evtType]) {
-            returnArray = returnArray.concat(subscriptions.ids[targetId][evtType]);
+        var subscriptionTarget = subscriptions[specifierType][targetId];
+        if (subscriptionTarget && subscriptionTarget[evtType]) {
+            returnArray = returnArray.concat(subscriptionTarget[evtType]);
         }
         return returnArray;
     };
@@ -192,9 +196,18 @@ MBX.EventHandler = (function () {
         if (!targetElement) {
             return;
         }
-        if (targetElement.id) {
-            callFunctions(functionsFromId(targetElement.id, evtType), evt);
+        
+        if(targetElement.__MotionboxEventHandlerMaker) {
+            functionsFromIdOrObject("objects", targetElement.__MotionboxEventHandlerMaker, evtType), evt
+            if (!Object.isElement(targetElement)) {
+                return;
+            }
         }
+        
+        if (targetElement.id) {
+            callFunctions(functionsFromIdOrObject("ids", targetElement.id, evtType), evt);
+        }
+        
         if (targetElement.className) {
             var targetClasses = Element.classNames(targetElement);
             callFunctions(functionsFromClasses(targetClasses, evtType), evt);
@@ -213,7 +226,7 @@ MBX.EventHandler = (function () {
     /** handle the creation of ID or class based subscriptions for a single
         specifier arrays of types and functions
     */
-    var createIdOrClassSubscription = function(specifierType, specifier, evtTypes, funcs) {
+    var createIdClassorObjectSubscription = function(specifierType, specifier, evtTypes, funcs) {
         var subscriptionArray = [];
         if (!subscriptions[specifierType][specifier]) {
             subscriptions[specifierType][specifier] = {};
@@ -261,12 +274,23 @@ MBX.EventHandler = (function () {
         }
     };
     
-    var isId = function(specifierString) {
+    var isId = function (specifierString) {
         return /^\#[\w-]+$/.test(specifierString);
     };
     
-    var isClass = function(specifierString) {
+    var isClass = function (specifierString) {
         return /^\.[\w-]+$/.test(specifierString);
+    };
+    
+    var isObject = function (specifier) {
+        return typeof specifier == "object";
+    };
+    
+    var getSubscriptionMarker = function (obj) {
+        if (!obj.__MotionboxEventHandlerMaker) {
+            obj.__MotionboxEventHandlerMaker = subscriptionMarker++;
+        }
+        return obj.__MotionboxEventHandlerMaker;
     };
     
     var browserLikeEventExtender = {
@@ -355,19 +379,28 @@ MBX.EventHandler = (function () {
     
             specifiers.each(function (specifier) {
                 var specifierType;
-                if (isId(specifier)) {
-                    specifier = specifier.sub(/#/, "");
-                    specifierType = "ids";
+                if (isObject(specifier)) {
+                    specifierType = "objects";
+                    specifier = getSubscriptionMarker(specifier);
+                } else {
+                    if (typeof specifier != "string") {
+                        throw new Error("specifier was neither an object nor a string");
+                    }
+                    if (isId(specifier)) {
+                        specifier = specifier.sub(/#/, "");
+                        specifierType = "ids";
+                    }
+                    if (isClass(specifier)) {
+                        specifierType = "classes";
+                        specifier = specifier.sub(/\./, "");
+                    }
                 }
-                if (isClass(specifier)) {
-                    specifierType = "classes";
-                    specifier = specifier.sub(/\./, "");
-                }
+                
                 //check if it matched id or class
                 if (specifierType) {
-                    referenceArray = referenceArray.concat(createIdOrClassSubscription(specifierType, specifier, evtTypes, funcs));
+                    referenceArray = referenceArray.concat(createIdClassorObjectSubscription(specifierType, specifier, evtTypes, funcs));
                 } else {
-                    // we assume that anything not matching a class or id is a css selector rule
+                    // we assume that anything not matching a class, id or object is a css selector rule
                     referenceArray = referenceArray.concat(createRulesSubscription(specifier, evtTypes, funcs));
                 } //end to rules handling
             }); // each specifier
@@ -424,9 +457,13 @@ MBX.EventHandler = (function () {
         */
         fireCustom: function (theTarget, evt, opts) {
             opts = opts || {};
-            var theEvent = new CustomEvent(theTarget, evt, opts);
-            Event.extend(theEvent);
-            handleEvent(theEvent);
+            if (Object.isElement(theTarget)) {
+                var theEvent = new CustomEvent(theTarget, evt, opts);
+                Event.extend(theEvent);
+                handleEvent(theEvent);
+            } else {
+                callFunctions(functionsFromIdOrObject("objects", getSubscriptionMarker(theTarget), evt), opts)
+            }
         },
         //TEST FUNCTION ONLY!
         dirSubscriptions: function () {

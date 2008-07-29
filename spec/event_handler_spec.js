@@ -79,5 +79,33 @@ Screw.Unit(function() {
                 expect(receivedEvent.someAttr).to(equal, 'received');
             });
         });
+        
+        describe('subscribing to an object', function () {
+            var called;
+            var funcCall = function () {
+                called++;
+            };
+            var someObj = {foo: 'bar'};
+            
+            before(function () {
+                called = 0;
+                eventSubscriptions.push(MBX.EventHandler.subscribe(someObj, 'myEvent', funcCall));
+            });
+            
+            it("should add the function to the subscriptions", function () {
+                expect(MBX.EventHandler.debugSubscriptions()['objects'][1]['myEvent'][0]).to(equal, funcCall);
+            });
+            
+            it('should respond to events', function () {
+                MBX.EventHandler.fireCustom(someObj, 'myEvent');
+                expect(called).to(equal, 1);
+            });
+            
+            it("should add a marker to the object", function () {
+                expect(someObj.__MotionboxEventHandlerMaker).to(equal, 1);
+            });
+            
+        });
+        
     });
 });
