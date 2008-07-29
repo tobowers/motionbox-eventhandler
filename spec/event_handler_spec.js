@@ -79,6 +79,5 @@ Screw.Unit(function() {
                 expect(receivedEvent.someAttr).to(equal, 'received');
             });
         });
-        
     });
 });
