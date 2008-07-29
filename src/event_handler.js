@@ -69,7 +69,7 @@ MBX.EventHandler = (function () {
         please note that 'change' and 'blur' DO NOT BUBBLE in IE - so you will need to do something
         extra for the Microsoft browsers
     */
-    var stdEvents = ["mouseout", "click", "mouseover", "keypress", "change", "blur", "focus"];
+    var stdEvents = ["mouseout", "click", "mouseover", "keypress", "change", "blur", "focus", "dom:loaded"];
     
     /** an object with all the event listeners we have listed by eventType
         gets filled in on init
@@ -465,6 +465,17 @@ MBX.EventHandler = (function () {
                 callFunctions(functionsFromIdOrObject("objects", getSubscriptionMarker(theTarget), evt), opts)
             }
         },
+        
+        /** these functions will be fired as soon as the dom is ready (using prototypes dom:ready event)
+            @param {Function or Array} funcs the function(s) to be fired at the Dom Ready event
+        */
+        onDomReady: function (funcs) {
+            if (!Object.isArray(funcs)) {
+                funcs = [funcs];
+            }
+            return MBX.EventHandler.subscribe(document, "dom:ready", funcs);
+        },
+        
         //TEST FUNCTION ONLY!
         dirSubscriptions: function () {
             console.dir(subscriptions);

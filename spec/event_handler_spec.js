@@ -104,8 +104,17 @@ Screw.Unit(function() {
             it("should add a marker to the object", function () {
                 expect(someObj.__MotionboxEventHandlerMaker).to(equal, 1);
             });
-            
         });
+        
+        describe("onDomReady events", function () {
+            var func = function () {};
+            it('should allow subscriptions to the dom:ready event', function () {
+                MBX.EventHandler.onDomReady(func);
+                var id = document.__MotionboxEventHandlerMaker;
+                expect(id).to_not(be_null);
+                expect(MBX.EventHandler.debugSubscriptions()['objects'][id]["dom:ready"][0]).to(equal, func);
+            });
+        })
         
     });
 });
