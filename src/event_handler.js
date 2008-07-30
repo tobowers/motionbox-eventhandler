@@ -56,7 +56,6 @@
   
 if (!("MBX" in window)) {
     /** @namespace
-        @ignore
     */
     MBX = {};
 }
