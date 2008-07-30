@@ -312,13 +312,6 @@ MBX.EventHandler = (function () {
         return subscriptionArray;
     };
     
-    // utility functions
-    var isArray = function (obj) {
-        if (obj) {
-            return obj.constructor == Array;
-        }
-    };
-    
     var isId = function (specifierString) {
         return /^\#[\w-]+$/.test(specifierString);
     };
@@ -399,9 +392,14 @@ MBX.EventHandler = (function () {
             or:
             @example
               MBX.EventHandler.subscribe("p#blah.cool", "click", function(evt) {console.dir(evt);});
+            @example
+              var someObj = {};
+              // the below will use a setTimeout to fire the function when "myEvent" is fired on someObj
+              MBX.EventHandler.subscribe(someObj, "myEvent", function () {alert('hi'); }, {defer: true});
+              
             events may be custom events
             
-            @param {String} specifiers the class, id or CSS selector that you want to subscribe to
+            @param {String or Object or Array} specifiers the Object, class, id or CSS selector that you want to subscribe to (or array of any of those)
             @param {String or Array} evtTypes the types of events you want to subscribe to
             @param {Function or Array} funcs the functions you want to be called with this subscription
             @param {Object} opts Right now only takes a "defer" option which will fire functions with setTimeout
@@ -409,16 +407,15 @@ MBX.EventHandler = (function () {
             @returns A handler object that can be used to unsubscribe
             
             @see MBX.EventHandler.fireCustom.
-            returns an object you can use to unsubscribe
         */
         subscribe: function (specifiers, evtTypes, funcs, opts) {
-            if (!isArray(specifiers)) {
+            if (!Object.isArray(specifiers)) {
                 specifiers = [specifiers];
             }
-            if (!isArray(evtTypes)) {
+            if (!Object.isArray(evtTypes)) {
                 evtTypes = [evtTypes];
             }
-            if (!isArray(funcs)) {
+            if (!Object.isArray(funcs)) {
                 funcs = [funcs];
             }
             opts = opts || {};
@@ -456,7 +453,7 @@ MBX.EventHandler = (function () {
         },
         
         /** Unsubscribe a previous subscribed handler
-            @param {Object or Array} handlerObjects the handler objects that were originally passed to the
+            @param {Object} handlerObjects the handler objects that were originally passed to the
                                                     subscriptions
             @example
               var handlerObj = MBX.EventHandler.subscribe("#blah", "click", function () {alert('hi')!});
@@ -513,8 +510,9 @@ MBX.EventHandler = (function () {
             }
         },
         
-        /** these functions will be fired as soon as the dom is ready (using prototypes dom:ready event)
+        /** Accepts functions that will be fired as soon as the dom is ready (using prototypes dom:loaded event)
             @param {Function or Array} funcs the function(s) to be fired at the Dom Ready event
+            @returns a handler object that can be used to unsubscribe
         */
         onDomReady: function (funcs) {
             if (!Object.isArray(funcs)) {

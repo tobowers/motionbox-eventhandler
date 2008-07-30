@@ -2,8 +2,9 @@ The Motionbox EventHandler allows you to:
 
 * Subscribe to elements *before* they are on the DOM
 * Subscribe to entire classes of elements (eg. subscribe to clicks on all elements with the class ".foo")
+* Use the same interface to trigger events between Objects and/or DOM elements
 * Limit your actual observers to a minimum (Only 1 per *type* of event) and still subscribe many elements
-* Maintain a consistent interface among both custom and browser events
+* Maintain a consistent interface among both custom, browser, and on Object events
 
 #Introduction
 
@@ -19,12 +20,13 @@ The basic idea is that we listen for key interesting events at the document.body
 
 #Implementation
 
-MBX.EventHandler listens to either element IDs, classes or single css selectors (p.my_class:first-child).
+MBX.EventHandler listens to Objects, element IDs, classes or single css selectors (p.my_class:first-child).
 
-Right now MBX.EventHandler listens to the following events:  "mouseout", "click", "mouseover", "keypress", "change", "blur"
+Right now MBX.EventHandler listens to the following events:  "mouseout", "click", "mouseover", "keypress", "change", "blur", "dom:loaded"
 Any event that bubbles to document is a good candidate for the EventHandler, these are just what we have started with.
+You can also fire any arbitrary event you want.
 
-IMPORTANT NOTE:  "change", "blur" do NOT bubble in IE6,7 and hence are not usable with the EventHandler in those browsers. 
+IMPORTANT NOTE:  "change", "blur" do NOT bubble in IE6,7 and hence are not usable with the EventHandler in those browsers without some additional functions.
 
 Given:
 
@@ -66,7 +68,7 @@ evt = {'target': $("one"), 'type': "my_custom_event_name", 'customAttribute': "t
 
 NOTE:  The target that is being sent to fireCustom and that is being added to the event is an actual DOM element (not an ID or class).
 
-##Unsubscribing
+#Unsubscribing
 
 In rare cases, you may want to remove a behavior from a class or id.  When subscribing to an event, MBX.EventHandler will return an object to you that you can later use to unsubscribe:
 
@@ -77,10 +79,11 @@ In rare cases, you may want to remove a behavior from a class or id.  When subsc
 
 MBX.EventHandler has the following three public functions:
 
-subscribe(specifiers, eventTypes, functionsToCall)
-  specifiers = a string (or optional array of strings) specifying either a class or an id to subscribe to
+subscribe(specifiers, eventTypes, functionsToCall, opts)
+  specifiers = an Object or String (or optional array of Strings or Objects) specifying Object, class, id, or css selector to subscribe to
   eventTypes = a string (or optional array of strings) specifying the name of the events to subscribe to
   functionsToCall = a function (or optional array of functions) to call upon receiving the event.  These functions should accept an Event as their first argument.
+  opts = Object (optional) you can specify {defer: true} to allow these functions to be called with a setTimeout
   --
   returns: eventHandlerObject
 
@@ -88,6 +91,6 @@ unsubscribe(handlerObj)
   handlerObj = the object returned by the subscribe function
 
 fireCustom(target, eventName, opts)
-  target = DOM element
+  target = DOM element or Object
   eventName = the name of the event to fire (eg, "click" or "my_custom_event")
   opts = optional object with which to extend the event that is fired
