@@ -1,6 +1,11 @@
-h1. Motionbox EventHandler
+The Motionbox EventHandler allows you to:
 
-#Introduction:
+* Subscribe to elements *before* they are on the DOM
+* Subscribe to entire classes of elements (eg. subscribe to clicks on all elements with the class ".foo")
+* Limit your actual observers to a minimum (Only 1 per *type* of event) and still subscribe many elements
+* Maintain a consistent interface among both custom and browser events
+
+#Introduction
 
 The EventHandler adds a lot of benefits (see articles below).  The two most notable are: the ability to bind to events before the elements are available in the DOM and fewer browser/DOM event handlers (which eat memory and processing time). This is especially useful for AJAX applications where the DOM is being updated as there is no need to (re)create all your observers.
 
@@ -12,7 +17,7 @@ MBX.EventHandler brings these same conveniences to the prototype.js developer an
 The basic idea is that we listen for key interesting events at the document.body level (waiting for these events to bubble from their targets).  We then fire off these events to any handlers that have been registered with the EventHandler.
 
 
-#Implementation:
+#Implementation
 
 MBX.EventHandler listens to either element IDs, classes or single css selectors (p.my_class:first-child).
 
@@ -61,14 +66,14 @@ evt = {'target': $("one"), 'type': "my_custom_event_name", 'customAttribute': "t
 
 NOTE:  The target that is being sent to fireCustom and that is being added to the event is an actual DOM element (not an ID or class).
 
-#Unsubscribing:
+##Unsubscribing
 
 In rare cases, you may want to remove a behavior from a class or id.  When subscribing to an event, MBX.EventHandler will return an object to you that you can later use to unsubscribe:
 
     var myEventObj = MBX.EventHandler.subscribe(".my_li_class", "click", my_listener);  // this will trigger 'my_listener' by clicking either of the LIs below
     MBX.EventHandler.unsubscribe(myEventObj); // 'my_listener' will no longer be triggered by click events
 
-#API:
+#API
 
 MBX.EventHandler has the following three public functions:
 
