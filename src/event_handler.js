@@ -154,9 +154,10 @@ MBX.EventHandler = (function () {
         var func;
         while (functionsToCall.length > 0) {
             func = functionsToCall.pop();
-            setTimeout(function() {
-                func(evt)
-            }, 0);
+            var thisFire = function() {
+                func(evt);
+            }
+            setTimeout(thisFire, 0);
         }
     };
     
@@ -164,45 +165,60 @@ MBX.EventHandler = (function () {
         loop through those rules and compare them to target
         bad CSS selectors can throw up really bad JS errors,
     */
-    var functionsFromRules = function (target, evtType) {
+    var callFunctionsFromRules = function (target, evtType, evt) {
         if (!subscriptions.rules[evtType]) {
-            return [];
+            return;
         }
         var functionsToCall = [];
+        var functionsToDefer = [];
         for (prop in subscriptions.rules[evtType]) {
             if (subscriptions.rules[evtType].hasOwnProperty(prop) && target.match(prop)) {
                 functionsToCall = functionsToCall.concat(subscriptions.rules[evtType][prop]);
+                if (subscriptions.rules[evtType][prop]['deferrable']) {
+                    functionsToDefer = functionsToDefer.concat(subscriptions.rules[evtType][prop]['deferrable']);
+                }
             }
         }
-        return functionsToCall;
+        callFunctions(functionsToCall, evt);
+        deferFunctions(functionsToDefer, evt);
     };
     
     /** go to the subscriptions.ids object and grab an array of all the functions that are subscribed to
         the eventType evtType... so subscriptions.ids[targetId][evtType] which will be an array of functions
     */
-    var functionsFromIdOrObject = function (specifierType, targetId, evtType) {
+    var callFunctionsFromIdOrObject = function (specifierType, targetId, evtType, evt) {
         var returnArray = [];
+        var deferArray = [];
         var subscriptionTarget = subscriptions[specifierType][targetId];
         if (subscriptionTarget && subscriptionTarget[evtType]) {
             returnArray = returnArray.concat(subscriptionTarget[evtType]);
+            if (subscriptionTarget[evtType]['deferrable']) {
+                deferArray = deferArray.concat(subscriptionTarget[evtType]['deferrable']);
+            }
         }
-        return returnArray;
+        callFunctions(returnArray, evt);
+        deferFunctions(deferArray, evt);
     };
     
     /** same as functionsFromId, but uses all classes on the target object and looks in
         subscriptions.classes object
     */
-    var functionsFromClasses = function (targetClasses, evtType) {
+    var callFunctionsFromClasses = function (targetClasses, evtType, evt) {
         var functionsToCall = [];
+        var functionsToDefer = [];
         var classObject;
         targetClasses = $A(targetClasses);
         for (var index = 0, classLen = targetClasses.length; index < classLen; ++index) {
             classObject = subscriptions.classes[targetClasses[index]]
             if (classObject && classObject[evtType]) {
                 functionsToCall = functionsToCall.concat(classObject[evtType]);
+                if (classObject[evtType]['deferrable']) {
+                    functionsToDefer.concat(classObject[evtType]['deferrable']);
+                }
             }
         }
-        return functionsToCall;
+        callFunctions(functionsToCall, evt);
+        deferFunctions(functionsToDefer, evt);
     };
     
     /** given an element and an event type, call the functions held in the 
@@ -215,21 +231,21 @@ MBX.EventHandler = (function () {
         }
         
         if(targetElement.__MotionboxEventHandlerMaker) {
-            callFunctions(functionsFromIdOrObject("objects", targetElement.__MotionboxEventHandlerMaker, evtType), evt);
+            callFunctionsFromIdOrObject("objects", targetElement.__MotionboxEventHandlerMaker, evtType, evt);
             if (!Object.isElement(targetElement)) {
                 return;
             }
         }
         
         if (targetElement.id) {
-            callFunctions(functionsFromIdOrObject("ids", targetElement.id, evtType), evt);
+            callFunctionsFromIdOrObject("ids", targetElement.id, evtType, evt);
         }
         
         if (targetElement.className) {
             var targetClasses = Element.classNames(targetElement);
-            callFunctions(functionsFromClasses(targetClasses, evtType), evt);
+            callFunctionsFromClasses(targetClasses, evtType, evt);
         }
-        callFunctions(functionsFromRules(targetElement, evtType), evt);
+        callFunctionsFromRules(targetElement, evtType, evt);
     
         //recursively call self walking up the tree
         if (targetElement != window && targetElement != document && targetElement.parentNode) {
@@ -494,7 +510,7 @@ MBX.EventHandler = (function () {
                 Event.extend(theEvent);
                 handleEvent(theEvent);
             } else {
-                callFunctions(functionsFromIdOrObject("objects", getSubscriptionMarker(theTarget), evt), opts)
+                callFunctionsFromIdOrObject("objects", getSubscriptionMarker(theTarget), evt, opts);
             }
         },
         
