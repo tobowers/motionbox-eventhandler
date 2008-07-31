@@ -45,7 +45,7 @@ You can now:
 
     MBX.EventHandler.subscribe("#one", "click", my_listener);  // this will trigger 'my_listener' only by clicking on the li with the id of "one"
     // or
-    MBX.EventHandler.subscribe(".my_li_class", "click", my_listener);  // this will trigger 'my_listener' by clicking either of the LIs below
+    MBX.EventHandler.subscribe(".my_li_class", "click", my_listener);  // this will trigger 'my_listener' by clicking either of the LIs above
 
 All three of the required arguments may be an array:
     
@@ -67,6 +67,10 @@ The line above would add "customAttribute" to the event being passed to the subs
 evt = {'target': $("one"), 'type': "my_custom_event_name", 'customAttribute': "this is cool"}
 
 NOTE:  The target that is being sent to fireCustom and that is being added to the event is an actual DOM element (not an ID or class).
+
+You can also assign functions to be fired at DOM laod (using prototypes "dom:loaded" event) by using
+    
+    MBX.EventHandler.onDomReady(func);
 
 #Unsubscribing
 
@@ -94,3 +98,6 @@ fireCustom(target, eventName, opts)
   target = DOM element or Object
   eventName = the name of the event to fire (eg, "click" or "my_custom_event")
   opts = optional object with which to extend the event that is fired
+  
+onDomReady(funcs)
+  funcs = Function or Array of functions to be fired at DOM load
