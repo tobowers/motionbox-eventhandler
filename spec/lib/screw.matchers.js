@@ -140,31 +140,6 @@ Screw.Matchers = (function($) {
       failure_message: function(expected, actual, not) {
         return 'expected ' + $.print(actual) + (not ? ' to not contain selector ' : ' to contain selector ') + expected;
       }
-    },
-    
-    be_greater_than: {
-        match: function(expected, actual) {
-            return actual > expected;
-        },
-        
-        failure_message: function(expected, actual, not) {
-          return 'expected ' + $.print(actual) + (not ? ' to not be greater than ' : ' to be greater than ') + expected;
-        }
-    },
-    
-    be_near: {
-         match: function(expected, actual) {
-             if (!Object.isArray(expected)) {
-                 expected = [expected, 1];
-             }
-             return (actual < expected[0] + expected[1]) || (actual > expected[0] - expected[1]);
-         },
-         
-         failure_message: function(expected, actual, not) {
-           return 'expected ' + $.print(actual) + (not ? ' to not be within 1 of ' : ' to be within 1 of ') + expected;
-         }
     }
-    
-    
   }
 })(jQuery);

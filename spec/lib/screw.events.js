@@ -26,10 +26,10 @@
         .bind('failed', function(e, reason) {
           $(this)
             .addClass('failed')
-            .append($('<p class="error">').text(reason.toString()));
+            .append($('<p class="error"></p>').text(reason.toString()));
           if (reason.fileName || reason.lineNumber) {
             $(this)
-              .append($('<p class="error">').text(reason.fileName + " : " + reason.lineNumber));
+              .append($('<p class="error"></p>').text(reason.fileName + " : " + reason.lineNumber));
           }
         })
     })
