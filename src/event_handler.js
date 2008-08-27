@@ -460,22 +460,39 @@ MBX.EventHandler = (function () {
               MBX.EventHandler.unsubscribe(handlerObj) // the subscription above is now removed
         */
         unsubscribe: function (handlerObjects) {
+            var locator;
             handlerObjects.each(function (handlerObject) {
                 if (!(handlerObject.specifierType && handlerObject.eventType && handlerObject.specifier) || typeof handlerObject.func != 'function') {
                     throw new Error('bad unsubscribe object passed to EventHandler.unsubscribe');
                 }
                 if (handlerObject.specifierType != "rules") {
-                    var locator = subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType];
+                    locator = subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType];
                     for (var i = 0, funcLen = locator.length; i < funcLen; ++i) {
                         if (locator[i] == handlerObject.func) {
                             subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType].splice(i, 1);
                         }
                     }
+                    locator = subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType]['deferrable'];
+                    if (locator) {
+                        for (var i = 0, funcLen = locator.length; i < funcLen; ++i) {
+                            if (locator[i] == handlerObject.func) {
+                                subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType]['deferrable'].splice(i, 1);
+                            }
+                        }
+                    }
                 } else {
-                    var locator = subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier];
+                    locator = subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier];
                     for (var i = 0, funcLen = locator.length; i < funcLen; ++i) {
                         if (locator[i] == handlerObject.func) {
                             subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier].splice(i, 1);
+                        }
+                    }
+                    locator = subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier]['deferrable'];
+                    if (locator) {
+                        for (var i = 0, funcLen = locator.length; i < funcLen; ++i) {
+                            if (locator[i] == handlerObject.func) {
+                                subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier]['deferrable'].splice(i, 1);
+                            }
                         }
                     }
                 }

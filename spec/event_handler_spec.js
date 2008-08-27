@@ -15,10 +15,11 @@ Screw.Unit(function() {
         });
         
         describe("subscribing to a class", function () {
-            var clickWasCalled;
+            var clickWasCalled, sub;
             before(function () {
                 clickWasCalled = 0;
-                eventSubscriptions.push(MBX.EventHandler.subscribe(".href_class", "click", function () { clickWasCalled++ }));
+                sub = MBX.EventHandler.subscribe(".href_class", "click", function () { clickWasCalled++ })
+                eventSubscriptions.push(sub);
             });
             
             it("should listen to clicks on elements with the subscribed class", function () {
@@ -31,13 +32,21 @@ Screw.Unit(function() {
                 TH.click($$(".href_class").first());
                 expect(clickWasCalled).to(equal, 2);
             });
+            
+            it("should allow you to unsubscribe", function () {
+                MBX.EventHandler.unsubscribe(sub);
+                TH.click($$(".href_class").first());
+                expect(clickWasCalled).to(equal, 0);
+            });
+            
         });
         
         describe("subscribing to an id", function () {
-            var clickWasCalled;
+            var clickWasCalled, sub;
             before(function () {
                 clickWasCalled = 0;
-                eventSubscriptions.push(MBX.EventHandler.subscribe("#href_id", "click", function () { clickWasCalled++ }));
+                sub = MBX.EventHandler.subscribe("#href_id", "click", function () { clickWasCalled++ });
+                eventSubscriptions.push(sub);
             });
             
             it("should listen to clicks on elements with the subscribed id", function () {
@@ -50,13 +59,20 @@ Screw.Unit(function() {
                 TH.click($("href_id"));
                 expect(clickWasCalled).to(equal, 2);
             });
+            
+            it("should allow you to unsubscribe", function () {
+                MBX.EventHandler.unsubscribe(sub);
+                TH.click($("href_id"));
+                expect(clickWasCalled).to(equal, 0);
+            });
         });
         
         describe("custom events", function () {
-            var MyCustomEvent;
+            var MyCustomEvent, sub;
             before(function () {
                 MyCustomEvent = 0;
-                eventSubscriptions.push(MBX.EventHandler.subscribe("#href_id", "MyCustomEvent", function () { MyCustomEvent++ }));
+                sub = MBX.EventHandler.subscribe("#href_id", "MyCustomEvent", function () { MyCustomEvent++ })
+                eventSubscriptions.push(sub);
             });
             
             it("should fire on subscribed elements", function () {
@@ -78,6 +94,13 @@ Screw.Unit(function() {
                 });
                 expect(receivedEvent.someAttr).to(equal, 'received');
             });
+            
+            it("should allow you to unsubscribe", function () {
+                MBX.EventHandler.unsubscribe(sub);
+                MBX.EventHandler.fireCustom($("href_id"), "MyCustomEvent");
+                expect(MyCustomEvent).to(equal, 0);
+            });
+            
         });
         
         describe('subscribing to an object', function () {
@@ -141,9 +164,10 @@ Screw.Unit(function() {
         describe("deferring functions", function () {
             var MyCustomEvent = 0;
             var someObj = {};
+            var sub;
             before(function () {
-                eventSubscriptions.push(MBX.EventHandler.subscribe(someObj, "MyCustomEvent", function () { MyCustomEvent++ }, { defer: true }));
-
+                sub = MBX.EventHandler.subscribe(someObj, "MyCustomEvent", function () { MyCustomEvent++ }, { defer: true });
+                eventSubscriptions.push(sub);
             });
             
             it("should not fire in this thread", function () {
@@ -155,6 +179,24 @@ Screw.Unit(function() {
             
             it("should have fired by now", function () {
                 expect(MyCustomEvent).to(equal, 1); 
+            });
+            
+            describe("unsubscribing deferring functions", function () {
+                before(function () {
+                    MyCustomEvent = 0;
+                    MBX.EventHandler.unsubscribe(sub);
+                });
+                
+                it("should not fire in this thread", function () {
+                    MBX.EventHandler.fireCustom(someObj, "MyCustomEvent");
+
+                    // this one should be 0 since we're not threading yet
+                    expect(MyCustomEvent).to(equal, 0);
+                });
+
+                it("should not fire in this thread either", function () {
+                    expect(MyCustomEvent).to(equal, 0); 
+                });
             });
             
         });
