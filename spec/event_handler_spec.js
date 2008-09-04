@@ -181,6 +181,45 @@ Screw.Unit(function() {
                 expect(MyCustomEvent).to(equal, 1); 
             });
             
+            describe('with multiple deferred subscriptions', function () {
+                before(function () {
+                    sub = MBX.EventHandler.subscribe(someObj, "MyCustomEvent", function () { MyCustomEvent++ }, { defer: true });
+                    eventSubscriptions.push(sub);
+                });
+                
+                it("should not fire in this thread", function () {
+                    MBX.EventHandler.fireCustom(someObj, "MyCustomEvent");
+                
+                    // this one should be 0 since we're not threading yet
+                    expect(MyCustomEvent).to(equal, 1);
+                });
+                
+                it("should both have fired by now", function () {
+                    expect(MyCustomEvent).to(equal, 3); 
+                });
+                
+            });
+            
+            
+            describe("an event with both deferred and regular subscriptions", function () {
+                var MyOtherCustomEvent = 0;
+                before(function () {
+                    sub = MBX.EventHandler.subscribe(someObj, "someOtherEvent", function () { MyOtherCustomEvent++ }, { defer: true });
+                    eventSubscriptions.push(sub);
+                    sub = MBX.EventHandler.subscribe(someObj, "someOtherEvent", function () { MyOtherCustomEvent++ });
+                    eventSubscriptions.push(sub);
+                });
+                
+                it("should fire the regular subscription in this thread", function () {
+                    MBX.EventHandler.fireCustom(someObj, "someOtherEvent");
+                    expect(MyOtherCustomEvent).to(equal, 1);
+                });
+                
+                it("should still fire the deferred function in this thread", function () {
+                    expect(MyOtherCustomEvent).to(equal, 2);
+                });
+            });
+            
             describe("unsubscribing deferring functions", function () {
                 before(function () {
                     MyCustomEvent = 0;
