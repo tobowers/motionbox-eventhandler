@@ -2,16 +2,68 @@ var Screw = (function($) {
   var screw = {
     Unit: function(fn) {
       var contents = fn.toString().match(/^[^\{]*{((.*\n*)*)}/m)[1];
-      var fn = new Function("matchers", "specifications",
-        "with (specifications) { with (matchers) { " + contents + " } }"
+      var fn = new Function("matchers", "specifications", "utilities",
+        "with (specifications) { with (matchers) { with (utilities) {" + contents + " } } }"
       );
 
       $(Screw).queue(function() {
         Screw.Specifications.context.push($('body > .describe'));
-        fn.call(this, Screw.Matchers, Screw.Specifications);
+        fn.call(this, Screw.Matchers, Screw.Specifications, Screw.Utilities);
         Screw.Specifications.context.pop();
         $(this).dequeue();
       });
+    },
+
+    Utilities: {
+      /*
+       * 'me' is $(this) being passed to the screwunit.run function (see screw.behaviors.js)
+       *   $(this).data('screwunit.run')($(this));
+       */
+       
+      skip: function(me){
+        return {
+          because: function(reason) {
+            me.trigger('skipped', [reason]);
+            throw '';
+          }
+        }
+      },
+      
+      using: function( me ) {
+        return {
+          wait : function( seconds ) {
+            return {
+              and_then: function( fn ) {
+                var f = function() {
+                  var async_count = me.data('async_waiting_count') - 1;
+                  me.data('async_waiting_count', async_count);
+                  if (async_count < 1) {
+                    me.removeClass('async');
+                  }
+
+                  try {
+                    fn(me);
+                  } catch (e) {
+                    me.trigger('failed', [e]);
+                    return;
+                  }
+                  me.trigger('passed');
+                };
+
+                var async_count = me.data('async_waiting_count') ||  0
+                me.data('async_waiting_count', async_count + 1)
+
+                me.addClass('async');
+
+                // allow the "it" we are called from to finish, which will add class "passed", which we want to remove.
+                setTimeout(function(){ me.trigger('running'); }, 2);
+
+                setTimeout(f, 1000 * parseInt(seconds,10));
+              } 
+            }
+          }
+        }  
+      }
     },
 
     Specifications: {

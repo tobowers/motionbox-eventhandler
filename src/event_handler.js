@@ -1,5 +1,5 @@
 /**  event_handler
-    @version 1.1
+    @version 1.2
  *  @requires Prototype 1.6.0
  
  *  Copyright (c) 2008 Motionbox, Inc.
@@ -38,7 +38,7 @@
  *  MBX.event_handler has the following three public functions:
  *
  *  subscribe(specifiers, eventTypes, functionsToCall)
- *    specifiers = a string (or optional array of strings) specifying either a class or an id to subscribe to
+ *    specifiers = a string (or optional array of strings) specifying a class, id, or object to subscribe to
  *    eventTypes = a string (or optional array of strings) specifying the name of the events to subscribe to
  *    functionsToCall = a function (or optional array of functions) to call upon receiving the event.
  *                      These functions should accept an Event as their first argument.
@@ -59,7 +59,7 @@ if (!("MBX" in window)) {
     */
     MBX = {};
 }
-  
+
 /**  @class EventHandler
      @name MBX.EventHandler */
 MBX.EventHandler = (function () {
@@ -104,9 +104,13 @@ MBX.EventHandler = (function () {
         eventListeners[evtType] = document.observe(evtType, handleEvent);
     });
     
+    var domReadyAlreadyFired = false;
+    
     document.observe("dom:loaded", function () {
+        domReadyAlreadyFired = true;
         MBX.EventHandler.fireCustom(document, "dom:loaded");
     });
+
     
     /** this holds the actual subscriptions in the form
     
@@ -152,11 +156,10 @@ MBX.EventHandler = (function () {
     var deferFunctions = function (functionsToCall, evt) {
         var func;
         while (functionsToCall.length > 0) {
-            func = functionsToCall.pop();
-            var thisFire = function() {
-                func(evt);
-            }
-            setTimeout(thisFire, 0);
+            func = functionsToCall.pop().wrap(function (orig) {
+                orig(evt);
+            });
+            setTimeout(func, 0);
         }
     };
     
@@ -173,8 +176,8 @@ MBX.EventHandler = (function () {
         for (prop in subscriptions.rules[evtType]) {
             if (subscriptions.rules[evtType].hasOwnProperty(prop) && target.match(prop)) {
                 functionsToCall = functionsToCall.concat(subscriptions.rules[evtType][prop]);
-                if (subscriptions.rules[evtType][prop]['deferrable']) {
-                    functionsToDefer = functionsToDefer.concat(subscriptions.rules[evtType][prop]['deferrable']);
+                if (subscriptions.rules[evtType][prop].deferrable) {
+                    functionsToDefer = functionsToDefer.concat(subscriptions.rules[evtType][prop].deferrable);
                 }
             }
         }
@@ -191,8 +194,8 @@ MBX.EventHandler = (function () {
         var subscriptionTarget = subscriptions[specifierType][targetId];
         if (subscriptionTarget && subscriptionTarget[evtType]) {
             returnArray = returnArray.concat(subscriptionTarget[evtType]);
-            if (subscriptionTarget[evtType]['deferrable']) {
-                deferArray = deferArray.concat(subscriptionTarget[evtType]['deferrable']);
+            if (subscriptionTarget[evtType].deferrable) {
+                deferArray = deferArray.concat(subscriptionTarget[evtType].deferrable);
             }
         }
         callFunctions(returnArray, evt);
@@ -208,11 +211,11 @@ MBX.EventHandler = (function () {
         var classObject;
         targetClasses = $A(targetClasses);
         for (var index = 0, classLen = targetClasses.length; index < classLen; ++index) {
-            classObject = subscriptions.classes[targetClasses[index]]
+            classObject = subscriptions.classes[targetClasses[index]];
             if (classObject && classObject[evtType]) {
                 functionsToCall = functionsToCall.concat(classObject[evtType]);
-                if (classObject[evtType]['deferrable']) {
-                    functionsToDefer.concat(classObject[evtType]['deferrable']);
+                if (classObject[evtType].deferrable) {
+                    functionsToDefer.concat(classObject[evtType].deferrable);
                 }
             }
         }
@@ -268,13 +271,13 @@ MBX.EventHandler = (function () {
              if (!specifierObject[evtType]) {
                  specifierObject[evtType] = [];
              }
-             if (opts.defer && !specifierObject[evtType]['deferrable']) {
-                 specifierObject[evtType]['deferrable'] = [];
+             if (opts.defer && !specifierObject[evtType].deferrable) {
+                 specifierObject[evtType].deferrable = [];
              }
             
             funcs.each(function (func) {
                 if (opts.defer) {
-                    specifierObject[evtType]['deferrable'].push(func);
+                    specifierObject[evtType].deferrable.push(func);
                 } else {
                     specifierObject[evtType].push(func);
                 }
@@ -297,12 +300,12 @@ MBX.EventHandler = (function () {
             if (!specifierObject[specifier]) {
                 specifierObject[specifier] = [];
             }
-            if (opts.defer && !specifierObject[specifier]['deferrable']) {
-                specifierObject[specifier]['deferrable'] = [];
+            if (opts.defer && !specifierObject[specifier].deferrable) {
+                specifierObject[specifier].deferrable = [];
             }
             funcs.each(function (func) {
                 if (opts.defer) {
-                    specifierObject[specifier]['deferrable'].push(func);
+                    specifierObject[specifier].deferrable.push(func);
                 } else {
                     specifierObject[specifier].push(func);
                 }
@@ -384,8 +387,8 @@ MBX.EventHandler = (function () {
     return /** @lends MBX.EventHandler */ {
         //public functions
     
-        /** institue the subscriber:  '#' indicates an id, "." indicates a class, anything else is considered
-            a CSS Selector
+        /** institue the subscriber:  '#' indicates an id, "." indicates a class, any other string is
+            considered a CSS Selector.  You may also pass in an object (or DomElement).
             subscribe with:
             @example
               MBX.EventHandler.subscribe(".myClass", "click", function (){ alert('hi'); });
@@ -400,13 +403,14 @@ MBX.EventHandler = (function () {
             events may be custom events
             
             @param {String or Object or Array} specifiers the Object, class, id or CSS selector that you want to subscribe to (or array of any of those)
-            @param {String or Array} evtTypes the types of events you want to subscribe to
+            @param {String or Array} evtTypes the types of events you want to subscribe to (these can be arbitrary to allow custom events)
             @param {Function or Array} funcs the functions you want to be called with this subscription
             @param {Object} opts Right now only takes a "defer" option which will fire functions with setTimeout
             
             @returns A handler object that can be used to unsubscribe
             
-            @see MBX.EventHandler.fireCustom.
+            @see MBX.EventHandler.fireCustom
+            @see MBX.EventHandler.unsubscribe
         */
         subscribe: function (specifiers, evtTypes, funcs, opts) {
             if (!Object.isArray(specifiers)) {
@@ -458,6 +462,8 @@ MBX.EventHandler = (function () {
             @example
               var handlerObj = MBX.EventHandler.subscribe("#blah", "click", function () {alert('hi')!});
               MBX.EventHandler.unsubscribe(handlerObj) // the subscription above is now removed
+              
+            @see MBX.EventHandler.subscribe
         */
         unsubscribe: function (handlerObjects) {
             var locator;
@@ -472,11 +478,11 @@ MBX.EventHandler = (function () {
                             subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType].splice(i, 1);
                         }
                     }
-                    locator = subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType]['deferrable'];
+                    locator = subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType].deferrable;
                     if (locator) {
                         for (var i = 0, funcLen = locator.length; i < funcLen; ++i) {
                             if (locator[i] == handlerObject.func) {
-                                subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType]['deferrable'].splice(i, 1);
+                                subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType].deferrable.splice(i, 1);
                             }
                         }
                     }
@@ -487,11 +493,11 @@ MBX.EventHandler = (function () {
                             subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier].splice(i, 1);
                         }
                     }
-                    locator = subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier]['deferrable'];
+                    locator = subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier].deferrable;
                     if (locator) {
                         for (var i = 0, funcLen = locator.length; i < funcLen; ++i) {
                             if (locator[i] == handlerObject.func) {
-                                subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier]['deferrable'].splice(i, 1);
+                                subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier].deferrable.splice(i, 1);
                             }
                         }
                     }
@@ -504,7 +510,7 @@ MBX.EventHandler = (function () {
     
         /** fire a custom event of your choosing. Will notify any subscribers to that evt
             You can also attach a payload to the event that will be added to the events
-            @param {DomElement} theTarget A dom element to fire the event on
+            @param {Object} theTarget A dom element, or arbotrary object to fire the event on
             @param {String} evt the Event to fire
             @param {Object} opts (optional) the attributes to be attached to the event
             
@@ -515,27 +521,48 @@ MBX.EventHandler = (function () {
               MBX.EventHandler.fireCustom($("element"), 'mycustomevent', {
                   theseAttributes: "will be attached to the event"
               });
+              
+            @see MBX.EventHandler.subscribe
         */
         fireCustom: function (theTarget, evt, opts) {
-            opts = opts || {};
-            if (Object.isElement(theTarget)) {
-                var theEvent = new CustomEvent(theTarget, evt, opts);
-                Event.extend(theEvent);
-                handleEvent(theEvent);
-            } else {
-                callFunctionsFromIdOrObject("objects", getSubscriptionMarker(theTarget), evt, opts);
+            if (theTarget) {
+                opts = opts || {};
+                if (Object.isElement(theTarget)) {
+                    var theEvent = new CustomEvent(theTarget, evt, opts);
+                    Event.extend(theEvent);
+                    handleEvent(theEvent);
+                } else {
+                    callFunctionsFromIdOrObject("objects", getSubscriptionMarker(theTarget), evt, opts);
+                }
             }
         },
         
         /** Accepts functions that will be fired as soon as the dom is ready (using prototypes dom:loaded event)
+            By default, we fire onDomReady events using setTimeout
+            If the dom:loaded event has already ocurred, we simply call the function
             @param {Function or Array} funcs the function(s) to be fired at the Dom Ready event
+            @param {Object} opts (optional) add { defer: false } to *not* fire the function using a setTimeout
             @returns a handler object that can be used to unsubscribe
         */
-        onDomReady: function (funcs) {
+        onDomReady: function (funcs, opts) {
+            opts = opts || {};
+            if (typeof opts.defer == 'undefined') {
+                opts.defer = true;
+            }
+            
             if (!Object.isArray(funcs)) {
                 funcs = [funcs];
             }
-            return MBX.EventHandler.subscribe(document, "dom:loaded", funcs);
+            if (domReadyAlreadyFired) {
+                if (opts.defer) {
+                    deferFunctions(funcs, "dom:loaded");
+                } else {
+                    callFunctions(funcs, "dom:loaded");
+                }
+            } else {
+                var subHandler = MBX.EventHandler.subscribe(document, "dom:loaded", funcs, { defer: opts.defer });
+                return subHandler;
+            }
         },
         
         //TEST FUNCTION ONLY!
@@ -545,6 +572,10 @@ MBX.EventHandler = (function () {
         dirEventListeners: function () {
             console.dir(eventListeners);
         },
+        
+        /** return the object that holds the subscriptions, useful for debugging or testing
+            @returns {Object} private subscriptions object
+        */
         debugSubscriptions: function () {
             return subscriptions;
         }

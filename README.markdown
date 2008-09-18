@@ -2,20 +2,24 @@ The Motionbox EventHandler allows you to:
 
 * Subscribe to elements *before* they are on the DOM
 * Subscribe to entire classes of elements (eg. subscribe to clicks on all elements with the class ".foo")
+* Subscribe to arbitrary Objects (including DOMElements) which allows you to nicely separate your code
 * Use the same interface to trigger events between Objects and/or DOM elements
 * Limit your actual observers to a minimum (Only 1 per *type* of event) and still subscribe many elements
 * Maintain a consistent interface among both custom, browser, and on Object events
+* Easily defer your funcitons (fire using setTimeout by simply adding { defer: true } to your subscriptions)
 
 #Introduction
 
-The EventHandler adds a lot of benefits (see articles below).  The two most notable are: the ability to bind to events before the elements are available in the DOM and fewer browser/DOM event handlers (which eat memory and processing time). This is especially useful for AJAX applications where the DOM is being updated as there is no need to (re)create all your observers.
+The most notable benefit is: the ability to bind to events before the elements are available in the DOM. This is especially useful for AJAX applications where the DOM is being updated as there is no need to (re)create all your observers.
 
 The EventHandler uses a technique called "event delegation" to handle browser/javascript events.  You can read more about event delegation here:  http://icant.co.uk/sandbox/eventdelegation/
 The Motionbox implementation is based on the event bubbling ideas brought to YUI by Caridy Patiño Mayea:  http://yuiblog.com/blog/2007/09/13/bubbling-library-by-caridy/
 
 MBX.EventHandler brings these same conveniences to the prototype.js developer and adds custom event handling as well.
 
-The basic idea is that we listen for key interesting events at the document.body level (waiting for these events to bubble from their targets).  We then fire off these events to any handlers that have been registered with the EventHandler.
+The basic idea is that we listen for key interesting events at the document level (waiting for these events to bubble from their targets).  We then fire off these events to any handlers that have been registered with the EventHandler.
+
+The EventHandler also lets you subscribe to arbitrary Objects (and fire arbitrary events on Objects). This makes it really easy to keep your code completely independent of other bits of code. Just subscribe to objects, and have objects fire events on themselves.
 
 
 #Implementation
@@ -45,7 +49,9 @@ You can now:
 
     MBX.EventHandler.subscribe("#one", "click", my_listener);  // this will trigger 'my_listener' only by clicking on the li with the id of "one"
     // or
-    MBX.EventHandler.subscribe(".my_li_class", "click", my_listener);  // this will trigger 'my_listener' by clicking either of the LIs above
+    MBX.EventHandler.subscribe(".my_li_class", "click", my_listener);  // this will trigger 'my_listener' by clicking either of the LIs below
+    // or
+    MBX.EventHandler.subscribe(SomeArbitraryObject, "SomeArbitraryEvent", my_listener);  // this will trigger 'my_listener' by clicking either of the LIs below
 
 All three of the required arguments may be an array:
     
@@ -58,6 +64,8 @@ Since we are handling these events outside of the normal browser implementation,
     MBX.EventHandler.subscribe("#one", "my_custom_event_name", my_listener);
     // which you could then fire with:
     MBX.EventHandler.fireCustom($("one"), "my_custom_event_name");
+    // or
+    MBX.EventHandler.fireCustom(SomeArbitraryObject, "SomeArbitraryEvent", { somePayload: 'hi' });
 
 fireCustom also allows the optional extension of custom events with any data of your choosing:
     

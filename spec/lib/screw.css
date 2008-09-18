@@ -88,3 +88,15 @@ html {
             color: #000 !important;
             border-bottom: 1px solid #9A8E51;
           }
+          
+          
+          .describes .describe .its .it.skipped h2 {
+            background-color: #8DEEEE;
+            color: #000000 !important;
+          }
+
+          .describes .describe .its .it.skipped p {
+            margin-left: 1em;
+            color: #000000;
+          }
+          

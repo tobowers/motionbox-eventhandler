@@ -127,6 +127,16 @@ Screw.Unit(function() {
                     MBX.EventHandler.fireCustom(someObj, 'myEvent');
                     expect(called).to(equal, 1);
                 });
+                
+                it("should allow a payload of objects", function () {
+                    var receivedEvent = {};
+                    eventSubscriptions.push(MBX.EventHandler.subscribe(someObj, "MyCustomEvent", function (evt) { receivedEvent = evt }));
+                    MBX.EventHandler.fireCustom(someObj, "MyCustomEvent", {
+                        someAttr: 'received'
+                    });
+                    expect(receivedEvent.someAttr).to(equal, 'received');
+                });
+                
             });
             
             describe("DOM object", function () {
@@ -152,55 +162,76 @@ Screw.Unit(function() {
         });
         
         describe("onDomReady events", function () {
-            var func = function () {};
-            it('should allow subscriptions to the dom:ready event', function () {
-                eventSubscriptions.push(MBX.EventHandler.onDomReady(func));
-                var id = document.__MotionboxEventHandlerMaker;
-                expect(id).to_not(be_null);
-                expect(MBX.EventHandler.debugSubscriptions()['objects'][id]["dom:loaded"][0]).to(equal, func);
-            });
+            describe("after dom:ready has already fired", function () {
+                it('should fire the function right away if dom:ready has already happened', function (me) {
+                    var fired = false;
+                    var func = function () { fired = true };
+                    MBX.EventHandler.onDomReady(func, { defer: false });
+                    expect(fired).to(be_true);
+                });
+                
+                it("should defer when no options are passed in", function (me) {
+                    var fired = false;
+                    var func = function () { fired = true };
+                    MBX.EventHandler.onDomReady(func);
+                    expect(fired).to_not(be_true);
+                    
+                    using(me).wait(3).and_then(function () {
+                        expect(fired).to(be_true);
+                    });
+                });
+                
+            });   
         });
         
         describe("deferring functions", function () {
             var MyCustomEvent = 0;
             var someObj = {};
             var sub;
+            var myOtherCustomEvent = 0;
             before(function () {
                 sub = MBX.EventHandler.subscribe(someObj, "MyCustomEvent", function () { MyCustomEvent++ }, { defer: true });
                 eventSubscriptions.push(sub);
             });
             
-            it("should not fire in this thread", function () {
+            it("should not fire right away, but should fire in the next thread", function (me) {
                 MBX.EventHandler.fireCustom(someObj, "MyCustomEvent");
-                
-                // this one should be 0 since we're not threading yet
                 expect(MyCustomEvent).to(equal, 0);
             });
             
-            it("should have fired by now", function () {
+            it("should have fired by this thread", function () {
                 expect(MyCustomEvent).to(equal, 1); 
+            })
+            
+            it("should still support event payloads", function (me) {
+                var evtReceived = {};
+                sub = MBX.EventHandler.subscribe(someObj, "anotherCustomEvent", function (evt) { evtReceived = evt; }, { defer: true });
+                eventSubscriptions.push(sub);
+                
+                MBX.EventHandler.fireCustom(someObj, "anotherCustomEvent", { someAttr: "hi" });
+                using(me).wait(3).and_then(function () {
+                    expect(evtReceived.someAttr).to(equal, "hi");
+                });
             });
             
             describe('with multiple deferred subscriptions', function () {
                 before(function () {
-                    sub = MBX.EventHandler.subscribe(someObj, "MyCustomEvent", function () { MyCustomEvent++ }, { defer: true });
+                    sub = MBX.EventHandler.subscribe(someObj, "MyCustomEvent", function () { myOtherCustomEvent++; }, { defer: true });
                     eventSubscriptions.push(sub);
                 });
                 
-                it("should not fire in this thread", function () {
+                it("should fire both subscriptions", function (me) {
                     MBX.EventHandler.fireCustom(someObj, "MyCustomEvent");
                 
                     // this one should be 0 since we're not threading yet
-                    expect(MyCustomEvent).to(equal, 1);
-                });
-                
-                it("should both have fired by now", function () {
-                    expect(MyCustomEvent).to(equal, 3); 
+                    expect(myOtherCustomEvent).to(equal, 0);
+                    using(me).wait(3).and_then(function () {
+                        expect(myOtherCustomEvent).to(equal, 1); 
+                    });
                 });
                 
             });
-            
-            
+
             describe("an event with both deferred and regular subscriptions", function () {
                 var MyOtherCustomEvent = 0;
                 before(function () {
@@ -210,31 +241,27 @@ Screw.Unit(function() {
                     eventSubscriptions.push(sub);
                 });
                 
-                it("should fire the regular subscription in this thread", function () {
+                it("should fire the regular subscription right away, but defer the other", function (me) {
                     MBX.EventHandler.fireCustom(someObj, "someOtherEvent");
                     expect(MyOtherCustomEvent).to(equal, 1);
-                });
-                
-                it("should still fire the deferred function in this thread", function () {
-                    expect(MyOtherCustomEvent).to(equal, 2);
+                    using(me).wait(3).and_then(function () {
+                        expect(MyOtherCustomEvent).to(equal, 2);
+                    })
                 });
             });
             
             describe("unsubscribing deferring functions", function () {
                 before(function () {
-                    MyCustomEvent = 0;
                     MBX.EventHandler.unsubscribe(sub);
                 });
                 
-                it("should not fire in this thread", function () {
+                it("should not fire ever (depends on previous tests being run)", function (me) {
                     MBX.EventHandler.fireCustom(someObj, "MyCustomEvent");
-
-                    // this one should be 0 since we're not threading yet
-                    expect(MyCustomEvent).to(equal, 0);
-                });
-
-                it("should not fire in this thread either", function () {
-                    expect(MyCustomEvent).to(equal, 0); 
+                    expect(MyCustomEvent).to(equal, 2);
+                    using(me).wait(2).and_then(function () {
+                        // is 2 from before
+                        expect(MyCustomEvent).to(equal, 2);
+                    });
                 });
             });
             

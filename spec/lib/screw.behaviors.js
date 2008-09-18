@@ -1,9 +1,15 @@
+Screw.Defaults = Screw.Defaults || {};
+Screw.Defaults.to_run = 'body > .describe > .describes > .describe';
+
 (function($) {
   $(Screw).bind('loaded', function() {
     $('.status').fn({
       display: function() {
         $(this).text(
-          $('.passed').length + $('.failed').length + ' test(s), ' + $('.failed').length + ' failure(s)'
+          $('.it.passed' ).length + $('.failed').length + $('.skipped').length + ' finished, ' +
+          $('.it.failed' ).length + ' failure(s), ' + 
+          $('.it.skipped').length + ' skipped, ' + 
+          $('.it.async'  ).length + ' running asynchronous test(s)'
         );
       }
     });
@@ -44,10 +50,12 @@
       },
       
       run: function() {
+        if ($(this).hasClass('skipped')){return}
+        
         try {
           try {
             $(this).fn('parent').fn('run_befores');
-            $(this).data('screwunit.run')();
+            $(this).data('screwunit.run')($(this));
           } finally {
             $(this).fn('parent').fn('run_afters');
           }
@@ -73,15 +81,15 @@
     });
     
     $('.before').fn({
-      run: function() { $(this).data('screwunit.run')() }
+      run: function() { $(this).data('screwunit.run')($(this)) }
     }); 
   
     $('.after').fn({
-      run: function() { $(this).data('screwunit.run')() }
+      run: function() { $(this).data('screwunit.run')($(this)) }
     });
 
     $(Screw).trigger('before');
-    var to_run = unescape(location.search.slice(1)) || 'body > .describe > .describes > .describe';
+    var to_run = unescape(location.search.slice(1)) || Screw.Defaults.to_run;
     $(to_run)
       .focus()
       .eq(0).trigger('scroll').end()
