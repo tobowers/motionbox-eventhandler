@@ -68,7 +68,11 @@ MBX.EventHandler = (function () {
         please note that 'change' and 'blur' DO NOT BUBBLE in IE - so you will need to do something
         extra for the Microsoft browsers
     */
-    var stdEvents = ["click", "mouseout", "mouseover", "keypress", "change", "blur", "focus"];
+    var stdEvents = ["click", "mouseout", "mouseover", "keypress", "change"];
+    /** these events do bubble, but are IE only */
+    var ieFocusBlurEvents = ["focusin", "focusout"];
+    /** these events don't bubble - but you can use a capturing style event to grab 'em outside of ie */
+    var nonBubblingBlurFocusEvents = ["blur", "focus"];
     
     /** an object with all the event listeners we have listed by eventType
         gets filled in on init
@@ -104,6 +108,46 @@ MBX.EventHandler = (function () {
         eventListeners[evtType] = document.observe(evtType, handleEvent);
     });
     
+    if (!Prototype.Browser.IE) {
+        /** We get focus and blur to look like they're bubbling by using event capturing
+            rathe than event bubbling
+        */
+        nonBubblingBlurFocusEvents.each(function (evtType) {
+            eventListeners[evtType] = document.addEventListener(evtType, handleEvent, true);
+        });
+    } else {
+        /** if it's IE - then we need to do focusin / focusout events = but we're gonna fix
+            so it looks like a focus or blur event to our subscribers
+        */
+        var handleIEFocusEvents = function (evt) {
+            var targetElement;
+            //console.dir(evt);
+             //the below fixes an intermittent prototype JS error
+             if (Event && evt) {
+                 try {
+                     targetElement = evt.srcElement;
+                 } catch (e) {
+                 }
+             }
+             if (targetElement) {
+                 var eventType;
+                 switch (evt.type) {
+                     case "focusin":
+                        eventType = "focus";
+                        break;
+                     case "focusout":
+                        eventType = "blur";
+                        break;
+                 }
+                 functionsFromElementAndEvent(targetElement, evt, { eventType: eventType });
+             }
+        };
+        
+        ieFocusBlurEvents.each(function (evtType) {
+           eventListeners[evtType] = document.observe(evtType, handleIEFocusEvents);
+        });
+    }
+
     var domReadyAlreadyFired = false;
     
     document.observe("dom:loaded", function () {
@@ -226,12 +270,18 @@ MBX.EventHandler = (function () {
     /** given an element and an event type, call the functions held in the 
         subscriptions object
     */
-    var functionsFromElementAndEvent = function (targetElement, evt) {
-        var evtType = evt.type;
+    var functionsFromElementAndEvent = function (targetElement, evt, opts) {
         if (!targetElement) {
             return;
         }
-        
+        opts = opts || {};
+        var evtType;
+        if (opts.eventType) {
+            evtType = opts.eventType;
+        } else {
+            evtType = evt.type;
+        }
+
         if(targetElement.__MotionboxEventHandlerMaker) {
             callFunctionsFromIdOrObject("objects", targetElement.__MotionboxEventHandlerMaker, evtType, evt);
             if (!Object.isElement(targetElement)) {
@@ -253,7 +303,7 @@ MBX.EventHandler = (function () {
         if (targetElement != window && targetElement != document && targetElement.parentNode) {
             var upTreeNode = targetElement.parentNode;
             if (upTreeNode && upTreeNode.tagName && upTreeNode.tagName != "HTML") {
-                functionsFromElementAndEvent($(upTreeNode), evt);
+                functionsFromElementAndEvent($(upTreeNode), evt, opts);
             }
         }
     };
@@ -362,18 +412,6 @@ MBX.EventHandler = (function () {
         }
     };
         
-    if (!Prototype.Browser.IE) {
-        (function () {
-            var methods = Object.keys(Event.Methods).inject({ }, function(m, name) {
-                m[name] = Event.Methods[name].methodize();
-                return m;
-              });
-    
-            CustomEvent.prototype = CustomEvent.prototype || document.createEvent("HTMLEvents").__proto__;
-            Object.extend(CustomEvent.prototype, methods);
-        })();
-    }
-    
     if (Prototype.Browser.IE) {
         var destroyObservers = function () {
             stdEvents.each(function (evtType) {
@@ -381,7 +419,17 @@ MBX.EventHandler = (function () {
             });
         };
         
-        window.attachEvent('onunload', destroyObservers);
+        window.attachEvent('onbeforeunload', destroyObservers);
+    } else {
+        (function () {
+            var methods = Object.keys(Event.Methods).inject({ }, function(m, name) {
+                m[name] = Event.Methods[name].methodize();
+                return m;
+              });
+        
+            CustomEvent.prototype = CustomEvent.prototype || document.createEvent("HTMLEvents").__proto__;
+            Object.extend(CustomEvent.prototype, methods);
+        })();
     }
     
     return /** @lends MBX.EventHandler */ {

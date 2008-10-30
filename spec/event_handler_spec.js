@@ -184,6 +184,48 @@ Screw.Unit(function() {
             });   
         });
         
+        describe("focus events", function () {
+            var evtFired;
+
+            it("should fire just like any other event", function () {
+                $("no_focus").focus();
+                evtFired = false;
+                MBX.EventHandler.subscribe("#input", "focus", function () { evtFired = true; });
+                $("input_el").focus();
+                expect(evtFired).to(be_true);
+            });
+            
+            it("should also bubble up", function () {
+                $("no_focus").focus();
+                var wrapperEvtFired = false;
+                MBX.EventHandler.subscribe(".wrapper", "focus", function () { wrapperEvtFired = true; });
+                $("input_el").focus();
+                expect(wrapperEvtFired).to(be_true);
+                $("no_focus").focus();
+            });
+            
+        });
+        
+        describe("blur events", function () {        
+            it("should fire just like any other event", function () {
+                var evtFired = false;
+                MBX.EventHandler.subscribe("#input", "blur", function () { evtFired = true; });
+                $("input_el").focus();
+                $("input_el").blur();                
+                expect(evtFired).to(be_true);
+            });
+        
+            it("should also bubble up", function () {
+                $("input_el").focus();
+                var wrapperEvtFired = false;
+                MBX.EventHandler.subscribe(".wrapper", "blur", function () { wrapperEvtFired = true; });
+                $("input_el").blur();
+                expect(wrapperEvtFired).to(be_true);
+            });
+        });
+        
+      
+        
         describe("deferring functions", function () {
             var MyCustomEvent = 0;
             var someObj = {};
