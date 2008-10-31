@@ -274,6 +274,7 @@ MBX.EventHandler = (function () {
         if (!targetElement) {
             return;
         }
+        
         opts = opts || {};
         var evtType;
         if (opts.eventType) {
@@ -281,7 +282,7 @@ MBX.EventHandler = (function () {
         } else {
             evtType = evt.type;
         }
-
+        
         if(targetElement.__MotionboxEventHandlerMaker) {
             callFunctionsFromIdOrObject("objects", targetElement.__MotionboxEventHandlerMaker, evtType, evt);
             if (!Object.isElement(targetElement)) {
