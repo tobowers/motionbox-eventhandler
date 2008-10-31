@@ -6,7 +6,8 @@ The Motionbox EventHandler allows you to:
 * Use the same interface to trigger events between Objects and/or DOM elements
 * Limit your actual observers to a minimum (Only 1 per *type* of event) and still subscribe many elements
 * Maintain a consistent interface among both custom, browser, and on Object events
-* Easily defer your funcitons (fire using setTimeout by simply adding { defer: true } to your subscriptions)
+* Easily defer your functions (fire using setTimeout by simply adding { defer: true } to your subscriptions)
+* Blur and focus events are supported and bubble in all the supported browsers.
 
 #Introduction
 
