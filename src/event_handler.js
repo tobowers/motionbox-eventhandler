@@ -63,6 +63,9 @@ if (!("MBX" in window)) {
 /**  @class EventHandler
      @name MBX.EventHandler */
 MBX.EventHandler = (function () {
+    /** @namespace */
+    self = {};
+    
     /** 
         all the standard events we want to listen to on document.
         please note that 'change' and 'blur' DO NOT BUBBLE in IE - so you will need to do something
@@ -433,200 +436,215 @@ MBX.EventHandler = (function () {
         })();
     }
     
-    return /** @lends MBX.EventHandler */ {
-        //public functions
-    
-        /** institue the subscriber:  '#' indicates an id, "." indicates a class, any other string is
-            considered a CSS Selector.  You may also pass in an object (or DomElement).
-            subscribe with:
-            @example
-              MBX.EventHandler.subscribe(".myClass", "click", function (){ alert('hi'); });
-            or:
-            @example
-              MBX.EventHandler.subscribe("p#blah.cool", "click", function(evt) {console.dir(evt);});
-            @example
-              var someObj = {};
-              // the below will use a setTimeout to fire the function when "myEvent" is fired on someObj
-              MBX.EventHandler.subscribe(someObj, "myEvent", function () {alert('hi'); }, {defer: true});
-              
-            events may be custom events
-            
-            @param {String or Object or Array} specifiers the Object, class, id or CSS selector that you want to subscribe to (or array of any of those)
-            @param {String or Array} evtTypes the types of events you want to subscribe to (these can be arbitrary to allow custom events)
-            @param {Function or Array} funcs the functions you want to be called with this subscription
-            @param {Object} opts Right now only takes a "defer" option which will fire functions with setTimeout
-            
-            @returns A handler object that can be used to unsubscribe
-            
-            @see MBX.EventHandler.fireCustom
-            @see MBX.EventHandler.unsubscribe
-        */
-        subscribe: function (specifiers, evtTypes, funcs, opts) {
-            if (!Object.isArray(specifiers)) {
-                specifiers = [specifiers];
-            }
-            if (!Object.isArray(evtTypes)) {
-                evtTypes = [evtTypes];
-            }
-            if (!Object.isArray(funcs)) {
-                funcs = [funcs];
-            }
-            opts = opts || {};
-            var referenceArray = [];
-    
-            specifiers.each(function (specifier) {
-                var specifierType;
-                if (isObject(specifier)) {
-                    specifierType = "objects";
-                    specifier = getSubscriptionMarker(specifier);
-                } else {
-                    if (typeof specifier != "string") {
-                        throw new Error("specifier was neither an object nor a string");
-                    }
-                    if (isId(specifier)) {
-                        specifier = specifier.sub(/#/, "");
-                        specifierType = "ids";
-                    }
-                    if (isClass(specifier)) {
-                        specifierType = "classes";
-                        specifier = specifier.sub(/\./, "");
-                    }
-                }
-                
-                //check if it matched id or class
-                if (specifierType) {
-                    referenceArray = referenceArray.concat(createIdClassorObjectSubscription(specifierType, specifier, evtTypes, funcs, opts));
-                } else {
-                    // we assume that anything not matching a class, id or object is a css selector rule
-                    referenceArray = referenceArray.concat(createRulesSubscription(specifier, evtTypes, funcs, opts));
-                } //end to rules handling
-            }); // each specifier
-            // return the array that can be used to unsubscribe
-            return referenceArray;
-        },
+    /** institue the subscriber:  '#' indicates an id, "." indicates a class, any other string is
+        considered a CSS Selector.  You may also pass in an object (or DomElement).
+        subscribe with:
+        @example
+          MBX.EventHandler.subscribe(".myClass", "click", function (){ alert('hi'); });
+        or:
+        @example
+          MBX.EventHandler.subscribe("p#blah.cool", "click", function(evt) {console.dir(evt);});
+        @example
+          var someObj = {};
+          // the below will use a setTimeout to fire the function when "myEvent" is fired on someObj
+          MBX.EventHandler.subscribe(someObj, "myEvent", function () {alert('hi'); }, {defer: true});
+          
+        events may be custom events
         
-        /** Unsubscribe a previous subscribed handler
-            @param {Object} handlerObjects the handler objects that were originally passed to the
-                                                    subscriptions
-            @example
-              var handlerObj = MBX.EventHandler.subscribe("#blah", "click", function () {alert('hi')!});
-              MBX.EventHandler.unsubscribe(handlerObj) // the subscription above is now removed
-              
-            @see MBX.EventHandler.subscribe
-        */
-        unsubscribe: function (handlerObjects) {
-            var locator;
-            handlerObjects.each(function (handlerObject) {
-                if (!(handlerObject.specifierType && handlerObject.eventType && handlerObject.specifier) || typeof handlerObject.func != 'function') {
-                    throw new Error('bad unsubscribe object passed to EventHandler.unsubscribe');
+        @param {String or Object or Array} specifiers the Object, class, id or CSS selector that you want to subscribe to (or array of any of those)
+        @param {String or Array} evtTypes the types of events you want to subscribe to (these can be arbitrary to allow custom events)
+        @param {Function or Array} funcs the functions you want to be called with this subscription
+        @param {Object} opts Right now only takes a "defer" option which will fire functions with setTimeout
+        
+        @returns A handler object that can be used to unsubscribe
+        
+        @see MBX.EventHandler.fireCustom
+        @see MBX.EventHandler.unsubscribe
+        
+        @mame MBX.EventHandler.subscribe
+        @function
+    */
+    self.subscribe = function (specifiers, evtTypes, funcs, opts) {
+        if (!Object.isArray(specifiers)) {
+            specifiers = [specifiers];
+        }
+        if (!Object.isArray(evtTypes)) {
+            evtTypes = [evtTypes];
+        }
+        if (!Object.isArray(funcs)) {
+            funcs = [funcs];
+        }
+        opts = opts || {};
+        var referenceArray = [];
+    
+        specifiers.each(function (specifier) {
+            var specifierType;
+            if (isObject(specifier)) {
+                specifierType = "objects";
+                specifier = getSubscriptionMarker(specifier);
+            } else {
+                if (typeof specifier != "string") {
+                    throw new Error("specifier was neither an object nor a string");
                 }
-                if (handlerObject.specifierType != "rules") {
-                    locator = subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType];
+                if (isId(specifier)) {
+                    specifier = specifier.sub(/#/, "");
+                    specifierType = "ids";
+                }
+                if (isClass(specifier)) {
+                    specifierType = "classes";
+                    specifier = specifier.sub(/\./, "");
+                }
+            }
+            
+            //check if it matched id or class
+            if (specifierType) {
+                referenceArray = referenceArray.concat(createIdClassorObjectSubscription(specifierType, specifier, evtTypes, funcs, opts));
+            } else {
+                // we assume that anything not matching a class, id or object is a css selector rule
+                referenceArray = referenceArray.concat(createRulesSubscription(specifier, evtTypes, funcs, opts));
+            } //end to rules handling
+        }); // each specifier
+        // return the array that can be used to unsubscribe
+        return referenceArray;
+    },
+    
+    /** Unsubscribe a previous subscribed handler
+        @param {Object} handlerObjects the handler objects that were originally passed to the
+                                                subscriptions
+        @example
+          var handlerObj = MBX.EventHandler.subscribe("#blah", "click", function () {alert('hi')!});
+          MBX.EventHandler.unsubscribe(handlerObj) // the subscription above is now removed
+          
+        @see MBX.EventHandler.subscribe
+        
+        @name MBX.EventHandler.unsubscribe
+        @function
+    */
+    self.unsubscribe = function (handlerObjects) {
+        var locator;
+        handlerObjects.each(function (handlerObject) {
+            if (!(handlerObject.specifierType && handlerObject.eventType && handlerObject.specifier) || typeof handlerObject.func != 'function') {
+                throw new Error('bad unsubscribe object passed to EventHandler.unsubscribe');
+            }
+            if (handlerObject.specifierType != "rules") {
+                locator = subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType];
+                for (var i = 0, funcLen = locator.length; i < funcLen; ++i) {
+                    if (locator[i] == handlerObject.func) {
+                        subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType].splice(i, 1);
+                    }
+                }
+                locator = subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType].deferrable;
+                if (locator) {
                     for (var i = 0, funcLen = locator.length; i < funcLen; ++i) {
                         if (locator[i] == handlerObject.func) {
-                            subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType].splice(i, 1);
+                            subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType].deferrable.splice(i, 1);
                         }
                     }
-                    locator = subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType].deferrable;
-                    if (locator) {
-                        for (var i = 0, funcLen = locator.length; i < funcLen; ++i) {
-                            if (locator[i] == handlerObject.func) {
-                                subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType].deferrable.splice(i, 1);
-                            }
-                        }
-                    }
-                } else {
-                    locator = subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier];
-                    for (var i = 0, funcLen = locator.length; i < funcLen; ++i) {
-                        if (locator[i] == handlerObject.func) {
-                            subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier].splice(i, 1);
-                        }
-                    }
-                    locator = subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier].deferrable;
-                    if (locator) {
-                        for (var i = 0, funcLen = locator.length; i < funcLen; ++i) {
-                            if (locator[i] == handlerObject.func) {
-                                subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier].deferrable.splice(i, 1);
-                            }
-                        }
-                    }
-                }
-    
-            });
-    
-            return true;
-        },
-    
-        /** fire a custom event of your choosing. Will notify any subscribers to that evt
-            You can also attach a payload to the event that will be added to the events
-            @param {Object} theTarget A dom element, or arbotrary object to fire the event on
-            @param {String} evt the Event to fire
-            @param {Object} opts (optional) the attributes to be attached to the event
-            
-            @example
-              MBX.EventHandler.fireCustom($('element'), 'mycustomeevent');
-              
-            @example
-              MBX.EventHandler.fireCustom($("element"), 'mycustomevent', {
-                  theseAttributes: "will be attached to the event"
-              });
-              
-            @see MBX.EventHandler.subscribe
-        */
-        fireCustom: function (theTarget, evt, opts) {
-            if (theTarget) {
-                opts = opts || {};
-                if (Object.isElement(theTarget)) {
-                    var theEvent = new CustomEvent(theTarget, evt, opts);
-                    Event.extend(theEvent);
-                    handleEvent(theEvent);
-                } else {
-                    callFunctionsFromIdOrObject("objects", getSubscriptionMarker(theTarget), evt, opts);
-                }
-            }
-        },
-        
-        /** Accepts functions that will be fired as soon as the dom is ready (using prototypes dom:loaded event)
-            By default, we fire onDomReady events using setTimeout
-            If the dom:loaded event has already ocurred, we simply call the function
-            @param {Function or Array} funcs the function(s) to be fired at the Dom Ready event
-            @param {Object} opts (optional) add { defer: false } to *not* fire the function using a setTimeout
-            @returns a handler object that can be used to unsubscribe
-        */
-        onDomReady: function (funcs, opts) {
-            opts = opts || {};
-            if (typeof opts.defer == 'undefined') {
-                opts.defer = true;
-            }
-            
-            if (!Object.isArray(funcs)) {
-                funcs = [funcs];
-            }
-            if (domReadyAlreadyFired) {
-                if (opts.defer) {
-                    deferFunctions(funcs, "dom:loaded");
-                } else {
-                    callFunctions(funcs, "dom:loaded");
                 }
             } else {
-                var subHandler = MBX.EventHandler.subscribe(document, "dom:loaded", funcs, { defer: opts.defer });
-                return subHandler;
+                locator = subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier];
+                for (var i = 0, funcLen = locator.length; i < funcLen; ++i) {
+                    if (locator[i] == handlerObject.func) {
+                        subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier].splice(i, 1);
+                    }
+                }
+                locator = subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier].deferrable;
+                if (locator) {
+                    for (var i = 0, funcLen = locator.length; i < funcLen; ++i) {
+                        if (locator[i] == handlerObject.func) {
+                            subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier].deferrable.splice(i, 1);
+                        }
+                    }
+                }
             }
-        },
+    
+        });
+    
+        return true;
+    },
+    
+    /** fire a custom event of your choosing. Will notify any subscribers to that evt
+        You can also attach a payload to the event that will be added to the events
+        @param {Object} theTarget A dom element, or arbotrary object to fire the event on
+        @param {String} evt the Event to fire
+        @param {Object} opts (optional) the attributes to be attached to the event
         
-        //TEST FUNCTION ONLY!
-        dirSubscriptions: function () {
-            console.dir(subscriptions);
-        },
-        dirEventListeners: function () {
-            console.dir(eventListeners);
-        },
+        @example
+          MBX.EventHandler.fireCustom($('element'), 'mycustomeevent');
+          
+        @example
+          MBX.EventHandler.fireCustom($("element"), 'mycustomevent', {
+              theseAttributes: "will be attached to the event"
+          });
+          
+        @see MBX.EventHandler.subscribe
         
-        /** return the object that holds the subscriptions, useful for debugging or testing
-            @returns {Object} private subscriptions object
-        */
-        debugSubscriptions: function () {
-            return subscriptions;
+        @name MBX.EventHandler.fireCustom
+        @function
+        
+    */
+    self.fireCustom = function (theTarget, evt, opts) {
+        if (theTarget) {
+            opts = opts || {};
+            if (Object.isElement(theTarget)) {
+                var theEvent = new CustomEvent(theTarget, evt, opts);
+                Event.extend(theEvent);
+                handleEvent(theEvent);
+            } else {
+                callFunctionsFromIdOrObject("objects", getSubscriptionMarker(theTarget), evt, opts);
+            }
         }
-    };
+    },
+    
+    /** Accepts functions that will be fired as soon as the dom is ready (using prototypes dom:loaded event)
+        By default, we fire onDomReady events using setTimeout
+        If the dom:loaded event has already ocurred, we simply call the function
+        @param {Function or Array} funcs the function(s) to be fired at the Dom Ready event
+        @param {Object} opts (optional) add { defer: false } to *not* fire the function using a setTimeout
+        @returns a handler object that can be used to unsubscribe
+        
+        @name MBX.EventHandler.onDomReady
+        @function
+    */
+    self.onDomReady = function (funcs, opts) {
+        opts = opts || {};
+        if (typeof opts.defer == 'undefined') {
+            opts.defer = true;
+        }
+        
+        if (!Object.isArray(funcs)) {
+            funcs = [funcs];
+        }
+        if (domReadyAlreadyFired) {
+            if (opts.defer) {
+                deferFunctions(funcs, "dom:loaded");
+            } else {
+                callFunctions(funcs, "dom:loaded");
+            }
+        } else {
+            var subHandler = MBX.EventHandler.subscribe(document, "dom:loaded", funcs, { defer: opts.defer });
+            return subHandler;
+        }
+    },
+    
+    //TEST FUNCTION ONLY!
+    self.dirSubscriptions = function () {
+        console.dir(subscriptions);
+    },
+    
+    self.dirEventListeners = function () {
+        console.dir(eventListeners);
+    },
+    
+    /** return the object that holds the subscriptions, useful for debugging or testing
+        @returns {Object} private subscriptions object
+        @name MBX.EventHandler.debugSubscriptions
+        @function
+    */
+    self.debugSubscriptions = function () {
+        return subscriptions;
+    }
+
+    return self;
+
 })();
