@@ -1,5 +1,5 @@
 /**  event_handler
-    @version 1.3
+    @version 1.4
  *  @requires Prototype 1.6.0
  
  *  Copyright (c) 2008 Motionbox, Inc.
