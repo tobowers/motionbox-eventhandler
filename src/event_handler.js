@@ -64,7 +64,73 @@ if (!("MBX" in window)) {
      @name MBX.EventHandler */
 MBX.EventHandler = (function () {
     /** @namespace */
-    self = {};
+    var self = {};
+    self.isIE = Prototype.Browser.IE;
+    
+    self.EventBox = (function () {
+        var self = {};
+        
+        self.isIE = Prototype.Browser.IE;
+        
+        var browserLikeEventExtender = {
+            preventDefault: function () {},
+            stopPropagation: function () {},
+            pageX: 0,
+            pageY: 0,
+            clientX: 0,
+            clientY: 0
+        };
+
+        var CustomEvent = function (theTarget, evt, opts) {
+            this.type = evt;
+            this.target = theTarget;
+            this.srcElement = theTarget;
+            this.eventName = evt;
+            this.memo = {};
+            Object.extend(this, opts);
+            for (prop in browserLikeEventExtender) {
+                if (browserLikeEventExtender.hasOwnProperty(prop)) {
+                    if (!this[prop]) {
+                        this[prop] = browserLikeEventExtender[prop];
+                    }
+                }
+            }
+            if (self.isIE) {
+                Event.extend(this);
+            }
+        };
+        
+        if (self.isIE) {
+            (function () {
+                var methods = Object.keys(Event.Methods).inject({ }, function(m, name) {
+                    m[name] = Event.Methods[name].methodize();
+                    return m;
+                  });
+
+                CustomEvent.prototype = CustomEvent.prototype || document.createEvent("HTMLEvents").__proto__;
+                Object.extend(CustomEvent.prototype, methods);
+            })();
+        }
+
+        self.buildCustomEvent = function (theTarget, evt, opts) {
+            var evt = new CustomEvent(theTarget, evt, opts);
+            return Event.extend(evt);
+        };
+        
+        self.subscribe = function (elem, type, func) {
+            return $(elem).observe(type, func);
+        };
+        
+        self.ieSubscribe = function (elem, type, func) {
+            
+        };
+        
+        self.elementFromEvent = function (evt) {
+            return Event.element(evt);
+        }
+        
+        return self;
+    })();
     
     /** 
         all the standard events we want to listen to on document.
@@ -108,10 +174,10 @@ MBX.EventHandler = (function () {
     /** subscribe to the listeners
     */
     stdEvents.each(function (evtType) {
-        eventListeners[evtType] = document.observe(evtType, handleEvent);
+        eventListeners[evtType] = self.EventBox.subscribe(document, evtType, handleEvent);
     });
     
-    if (!Prototype.Browser.IE) {
+    if (!self.isIE) {
         /** We get focus and blur to look like they're bubbling by using event capturing
             rathe than event bubbling
         */
@@ -387,36 +453,8 @@ MBX.EventHandler = (function () {
         }
         return obj.__MotionboxEventHandlerMaker;
     };
-    
-    var browserLikeEventExtender = {
-        preventDefault: function () {},
-        stopPropagation: function () {},
-        pageX: 0,
-        pageY: 0,
-        clientX: 0,
-        clientY: 0
-    };
-    
-    var CustomEvent = function (theTarget, evt, opts) {
-        this.type = evt;
-        this.target = theTarget;
-        this.srcElement = theTarget;
-        this.eventName = evt;
-        this.memo = {};
-        Object.extend(this, opts);
-        for (prop in browserLikeEventExtender) {
-            if (browserLikeEventExtender.hasOwnProperty(prop)) {
-                if (!this[prop]) {
-                    this[prop] = browserLikeEventExtender[prop];
-                }
-            }
-        }
-        if (Prototype.Browser.IE) {
-            Event.extend(this);
-        }
-    };
         
-    if (Prototype.Browser.IE) {
+    if (self.isIE) {
         var destroyObservers = function () {
             stdEvents.each(function (evtType) {
                 document.stopObserving(evtType, handleEvent);
@@ -424,16 +462,6 @@ MBX.EventHandler = (function () {
         };
         
         window.attachEvent('onbeforeunload', destroyObservers);
-    } else {
-        (function () {
-            var methods = Object.keys(Event.Methods).inject({ }, function(m, name) {
-                m[name] = Event.Methods[name].methodize();
-                return m;
-              });
-        
-            CustomEvent.prototype = CustomEvent.prototype || document.createEvent("HTMLEvents").__proto__;
-            Object.extend(CustomEvent.prototype, methods);
-        })();
     }
     
     /** institue the subscriber:  '#' indicates an id, "." indicates a class, any other string is
@@ -587,8 +615,7 @@ MBX.EventHandler = (function () {
         if (theTarget) {
             opts = opts || {};
             if (Object.isElement(theTarget)) {
-                var theEvent = new CustomEvent(theTarget, evt, opts);
-                Event.extend(theEvent);
+                var theEvent = self.EventBox.buildCustomEvent(theTarget, evt, opts);
                 handleEvent(theEvent);
             } else {
                 callFunctionsFromIdOrObject("objects", getSubscriptionMarker(theTarget), evt, opts);
