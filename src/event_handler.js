@@ -185,11 +185,17 @@ MBX.EventHandler = (function () {
              'splice' in object && 'join' in object;
     };
     
+    var makeArray = function (obj) {
+        if (!isArray(obj)) {
+            return [obj];
+        } else {
+            return obj;
+        }
+    };
+    
     var eachElement = function (ary, func) {
         ary = ary || {};
-        if (!isArray(ary)) {
-            ary = [ary];
-        }
+        ary = makeArray(ary);
         var len = ary.length;
         for (var i = 0; i < len; ++i) {
             func(ary[i]);
@@ -297,6 +303,21 @@ MBX.EventHandler = (function () {
             functionsToCall.pop()(evt);
         }
     };
+        
+    var wrap = function(func, wrapper) {
+        var __method = func;
+        __method.bind = function() {
+            if (arguments.length < 2 && Object.isUndefined(arguments[0])) return this;
+            var __method = this, args = Array.prototype.slice.call(arguments), object = args.shift();
+            return function() {
+              return __method.apply(object, args.concat(Array.prototype.slice.call(arguments)));
+            }
+        };
+        
+        return function() {
+          return wrapper.apply(this, [__method.bind(this)].concat(Array.prototype.slice.call(arguments)));
+        }
+    };
     
     /**
         defers function for later execution
@@ -304,7 +325,7 @@ MBX.EventHandler = (function () {
     var deferFunctions = function (functionsToCall, evt) {
         var func;
         while (functionsToCall.length > 0) {
-            func = functionsToCall.pop().wrap(function (orig) {
+            func = wrap(functionsToCall.pop(), function (orig) {
                 orig(evt);
             });
             setTimeout(func, 0);
@@ -352,7 +373,6 @@ MBX.EventHandler = (function () {
         var subscriptionsToCall = [];
         var functionsToDefer = [];
         var classObject;
-        targetClasses = $A(targetClasses);
         for (var index = 0, classLen = targetClasses.length; index < classLen; ++index) {
             classObject = subscriptions.classes[targetClasses[index]];
             if (classObject && classObject[evtType]) {
@@ -392,7 +412,7 @@ MBX.EventHandler = (function () {
         }
         
         if (targetElement.className) {
-            var targetClasses = Element.classNames(targetElement);
+            var targetClasses = targetElement.className.split(" ");
             callFunctionsFromClasses(targetClasses, evtType, evt);
         }
         callFunctionsFromRules(targetElement, evtType, evt);
@@ -401,7 +421,7 @@ MBX.EventHandler = (function () {
         if (targetElement != window && targetElement != document && targetElement.parentNode) {
             var upTreeNode = targetElement.parentNode;
             if (upTreeNode && upTreeNode.tagName && upTreeNode.tagName != "HTML") {
-                functionsFromElementAndEvent($(upTreeNode), evt, opts);
+                functionsFromElementAndEvent(upTreeNode, evt, opts);
             }
         }
     };
@@ -437,9 +457,7 @@ MBX.EventHandler = (function () {
     
     /** @constructor */
        var Subscription = function (specifier, eventType, funcs, opts) {
-           if (!isArray(funcs)) {
-               funcs = [funcs];
-           }
+           funcs = makeArray(funcs);
            
            this.specifier = specifier;
            this.eventType = eventType;
@@ -518,8 +536,11 @@ MBX.EventHandler = (function () {
                }
            }
        };
-       
+              
        var SubscriptionSet = function (specifiers, evtTypes, funcs, opts) {
+           specifiers = makeArray(specifiers);
+           evtTypes = makeArray(evtTypes);
+           
            this.specifiers = specifiers;
            this.evtTypes = evtTypes;
            this.funcs = funcs;
@@ -531,11 +552,11 @@ MBX.EventHandler = (function () {
        
        SubscriptionSet.prototype = {
            createSubscriptions: function () {
-               eachElement(this.specifiers, function (specifier) {
-                   eachElement(this.evtTypes, function (evtType) {
-                       this.subscriptions.push(new Subscription(specifier, evtType, this.funcs, this.opts));
-                   }.bind(this));
-               }.bind(this));
+               for (var i = 0; i < this.specifiers.length; ++i) {
+                   for (var j = 0; j < this.evtTypes.length; ++j) {
+                       this.subscriptions.push(new Subscription(this.specifiers[i], this.evtTypes[j], this.funcs, this.opts));
+                   }
+               }
            },
            unsubscribe: function () {
                eachElement(this.subscriptions, function (subscription) {
@@ -640,9 +661,7 @@ MBX.EventHandler = (function () {
             opts.defer = true;
         }
         
-        if (!Object.isArray(funcs)) {
-            funcs = [funcs];
-        }
+        funcs = makeArray(funcs);
         if (domReadyAlreadyFired) {
             if (opts.defer) {
                 deferFunctions(funcs, "dom:loaded");
@@ -650,8 +669,7 @@ MBX.EventHandler = (function () {
                 callFunctions(funcs, "dom:loaded");
             }
         } else {
-            var subHandler = MBX.EventHandler.subscribe(document, "dom:loaded", funcs, { defer: opts.defer });
-            return subHandler;
+            return MBX.EventHandler.subscribe(document, "dom:loaded", funcs, { defer: opts.defer });
         }
     },
     
