@@ -120,7 +120,7 @@ Screw.Unit(function() {
                 });
 
                 it("should add the function to the subscriptions", function () {
-                    expect(MBX.EventHandler.debugSubscriptions()['objects'][id]['myEvent'][0]).to(equal, funcCall);
+                    expect(MBX.EventHandler.debugSubscriptions()['objects'][id]['myEvent'][0].funcs[0]).to(equal, funcCall);
                 });
 
                 it('should respond to events', function () {
@@ -150,7 +150,7 @@ Screw.Unit(function() {
                 });
 
                 it("should add the function to the subscriptions", function () {
-                    expect(MBX.EventHandler.debugSubscriptions()['objects'][id]['myEvent'][0]).to(equal, funcCall);
+                    expect(MBX.EventHandler.debugSubscriptions()['objects'][id]['myEvent'][0].funcs[0]).to(equal, funcCall);
                 });
 
                 it('should respond to events', function () {

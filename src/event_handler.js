@@ -117,17 +117,49 @@ MBX.EventHandler = (function () {
             return Event.extend(evt);
         };
         
-        self.subscribe = function (elem, type, func) {
-            return $(elem).observe(type, func);
-        };
         
-        self.ieSubscribe = function (elem, type, func) {
+        var ieSubscribe = function (elem, type, func) {
             
         };
         
+        var captureSubscribe = function (elem, type, func) {
+            return elem.addEventListener(type, func, true);
+        };
+        
+        self.subscribe = function (elem, type, func, opts) {
+            opts = opts || {};
+            if (opts.ieOnly) {
+                return ieSubscribe(elem, type, func);
+            }
+            if (opts.capture) {
+                return captureSubscribe(elem, type, func);
+            }
+            // else
+            return $(elem).observe(type, func);
+        };
+        
         self.elementFromEvent = function (evt) {
-            return Event.element(evt);
-        }
+            var targ;
+            if (!evt) {
+                var e = window.event;
+            }
+            if (evt.target) {
+                targ = evt.target;
+            } else {
+                if (evt.srcElement) {
+                  targ = evt.srcElement;  
+                } 
+            }
+            if (targ.nodeType == 3)  {// defeat Safari bug
+            	targ = targ.parentNode;
+            }
+            
+            return targ;
+        };
+        
+        self.subscribeToDomReady = function (func) {
+            document.observe("dom:loaded", func);
+        };
         
         return self;
     })();
@@ -148,6 +180,36 @@ MBX.EventHandler = (function () {
     */
     var eventListeners = {};
     
+    var isArray = function (object) {
+        return object != null && typeof object == "object" &&
+             'splice' in object && 'join' in object;
+    };
+    
+    var eachElement = function (ary, func) {
+        ary = ary || {};
+        if (!isArray(ary)) {
+            ary = [ary];
+        }
+        var len = ary.length;
+        for (var i = 0; i < len; ++i) {
+            func(ary[i]);
+        }
+    };
+    
+    var normalizeEventType = function (evtType) {
+        if (!(/focusin|focusout/.test(evtType))) {
+            return evtType;
+        }
+        switch (evtType) {
+             case "focusin":
+                return "focus";
+                break;
+             case "focusout":
+                return "blur";
+                break;
+         }
+    };
+    
      /** Event bubbles up to the document where the listeners are and fires this function
          if the target element matches anything in the subscribers object then the functions fire
          it continues to go all the way up the tree
@@ -159,21 +221,21 @@ MBX.EventHandler = (function () {
          //console.log(Event.element(evt));
          //evt.isConsumed = false;
          var targetElement;
-         //the below fixes an intermittent prototype JS error
-         if (Event && evt) {
+         if (evt) {
+             var evtType = normalizeEventType(evt.type);
              try {
-                 targetElement = Event.element(evt);
-             } catch (e) {
-             }
-         }
-         if (targetElement) {
-             functionsFromElementAndEvent(targetElement, evt);
+                  targetElement = self.EventBox.elementFromEvent(evt);
+              } catch (e) {
+              }
+              if (targetElement) {
+                  functionsFromElementAndEvent(targetElement, evt, { evtType: evtType });
+              }
          }
     };
     
     /** subscribe to the listeners
     */
-    stdEvents.each(function (evtType) {
+    eachElement(stdEvents, function (evtType) {
         eventListeners[evtType] = self.EventBox.subscribe(document, evtType, handleEvent);
     });
     
@@ -181,45 +243,18 @@ MBX.EventHandler = (function () {
         /** We get focus and blur to look like they're bubbling by using event capturing
             rathe than event bubbling
         */
-        nonBubblingBlurFocusEvents.each(function (evtType) {
-            eventListeners[evtType] = document.addEventListener(evtType, handleEvent, true);
+        eachElement(nonBubblingBlurFocusEvents, function (evtType) {
+            eventListeners[evtType] = self.EventBox.subscribe(document, evtType, handleEvent, { capture: true });
         });
     } else {
-        /** if it's IE - then we need to do focusin / focusout events = but we're gonna fix
-            so it looks like a focus or blur event to our subscribers
-        */
-        var handleIEFocusEvents = function (evt) {
-            var targetElement;
-            //console.dir(evt);
-             //the below fixes an intermittent prototype JS error
-             if (Event && evt) {
-                 try {
-                     targetElement = evt.srcElement;
-                 } catch (e) {
-                 }
-             }
-             if (targetElement) {
-                 var eventType;
-                 switch (evt.type) {
-                     case "focusin":
-                        eventType = "focus";
-                        break;
-                     case "focusout":
-                        eventType = "blur";
-                        break;
-                 }
-                 functionsFromElementAndEvent(targetElement, evt, { eventType: eventType });
-             }
-        };
-        
-        ieFocusBlurEvents.each(function (evtType) {
-           eventListeners[evtType] = document.observe(evtType, handleIEFocusEvents);
+        eachElement(ieFocusBlurEvents, function (evtType) {
+           eventListeners[evtType] = self.EventBox.subscribe(document, evtType, handleEvent, { ieOnly: true });
         });
     }
 
     var domReadyAlreadyFired = false;
     
-    document.observe("dom:loaded", function () {
+    self.EventBox.subscribeToDomReady(function () {
         domReadyAlreadyFired = true;
         MBX.EventHandler.fireCustom(document, "dom:loaded");
     });
@@ -284,18 +319,15 @@ MBX.EventHandler = (function () {
         if (!subscriptions.rules[evtType]) {
             return;
         }
-        var functionsToCall = [];
-        var functionsToDefer = [];
+        var subscriptionsToCall = [];
         for (prop in subscriptions.rules[evtType]) {
             if (subscriptions.rules[evtType].hasOwnProperty(prop) && target.match(prop)) {
-                functionsToCall = functionsToCall.concat(subscriptions.rules[evtType][prop]);
-                if (subscriptions.rules[evtType][prop].deferrable) {
-                    functionsToDefer = functionsToDefer.concat(subscriptions.rules[evtType][prop].deferrable);
-                }
+                subscriptionsToCall = subscriptionsToCall.concat(subscriptions.rules[evtType][prop]);
             }
         }
-        callFunctions(functionsToCall, evt);
-        deferFunctions(functionsToDefer, evt);
+        eachElement(subscriptionsToCall, function (sub) {
+            sub.callFunctions(evt);
+        });
     };
     
     /** go to the subscriptions.ids object and grab an array of all the functions that are subscribed to
@@ -307,33 +339,29 @@ MBX.EventHandler = (function () {
         var subscriptionTarget = subscriptions[specifierType][targetId];
         if (subscriptionTarget && subscriptionTarget[evtType]) {
             returnArray = returnArray.concat(subscriptionTarget[evtType]);
-            if (subscriptionTarget[evtType].deferrable) {
-                deferArray = deferArray.concat(subscriptionTarget[evtType].deferrable);
-            }
         }
-        callFunctions(returnArray, evt);
-        deferFunctions(deferArray, evt);
+        eachElement(returnArray, function (sub) {
+            sub.callFunctions(evt);
+        });
     };
     
     /** same as functionsFromId, but uses all classes on the target object and looks in
         subscriptions.classes object
     */
     var callFunctionsFromClasses = function (targetClasses, evtType, evt) {
-        var functionsToCall = [];
+        var subscriptionsToCall = [];
         var functionsToDefer = [];
         var classObject;
         targetClasses = $A(targetClasses);
         for (var index = 0, classLen = targetClasses.length; index < classLen; ++index) {
             classObject = subscriptions.classes[targetClasses[index]];
             if (classObject && classObject[evtType]) {
-                functionsToCall = functionsToCall.concat(classObject[evtType]);
-                if (classObject[evtType].deferrable) {
-                    functionsToDefer.concat(classObject[evtType].deferrable);
-                }
+                subscriptionsToCall = subscriptionsToCall.concat(classObject[evtType]);
             }
         }
-        callFunctions(functionsToCall, evt);
-        deferFunctions(functionsToDefer, evt);
+        eachElement(subscriptionsToCall, function (sub) {
+            sub.callFunctions(evt);
+        });
     };
     
     /** given an element and an event type, call the functions held in the 
@@ -378,63 +406,6 @@ MBX.EventHandler = (function () {
         }
     };
     
-    /** handle the creation of ID or class based subscriptions for a single
-        specifier arrays of types and functions
-    */
-    var createIdClassorObjectSubscription = function(specifierType, specifier, evtTypes, funcs, opts) {
-        var subscriptionArray = [];
-        if (!subscriptions[specifierType][specifier]) {
-            subscriptions[specifierType][specifier] = {};
-        }
-        var specifierObject = subscriptions[specifierType][specifier];
-        evtTypes.each(function (evtType) {
-             if (!specifierObject[evtType]) {
-                 specifierObject[evtType] = [];
-             }
-             if (opts.defer && !specifierObject[evtType].deferrable) {
-                 specifierObject[evtType].deferrable = [];
-             }
-            
-            funcs.each(function (func) {
-                if (opts.defer) {
-                    specifierObject[evtType].deferrable.push(func);
-                } else {
-                    specifierObject[evtType].push(func);
-                }
-                subscriptionArray.push({'specifierType': specifierType, 'eventType': evtType, 'func': func, 'specifier': specifier});
-            });
-        });
-        return subscriptionArray;
-    };
-    
-    /** handle a CSS selector based subscription for a single specifier and arrays of types and functions
-    */
-    var createRulesSubscription = function(specifier, evtTypes, funcs, opts) {
-        var subscriptionArray = [];
-        evtTypes.each(function (evtType) {
-            if (!subscriptions.rules[evtType]) {
-                subscriptions.rules[evtType] = {};
-            }
-            var specifierObject = subscriptions.rules[evtType];
-            
-            if (!specifierObject[specifier]) {
-                specifierObject[specifier] = [];
-            }
-            if (opts.defer && !specifierObject[specifier].deferrable) {
-                specifierObject[specifier].deferrable = [];
-            }
-            funcs.each(function (func) {
-                if (opts.defer) {
-                    specifierObject[specifier].deferrable.push(func);
-                } else {
-                    specifierObject[specifier].push(func);
-                }
-                subscriptionArray.push({'specifierType': 'rules', 'eventType': evtType, 'func': func, 'specifier': specifier});
-            }); //each function
-        }); // each event type
-        return subscriptionArray;
-    };
-    
     var isId = function (specifierString) {
         return /^\#[\w-]+$/.test(specifierString);
     };
@@ -463,6 +434,115 @@ MBX.EventHandler = (function () {
         
         window.attachEvent('onbeforeunload', destroyObservers);
     }
+    
+    /** @constructor */
+       var Subscription = function (specifier, eventType, funcs, opts) {
+           if (!isArray(funcs)) {
+               funcs = [funcs];
+           }
+           
+           this.specifier = specifier;
+           this.eventType = eventType;
+           this.funcs = funcs;
+           this.opts = opts || {};
+           this.calculateSpecifierType();
+           this.cache();
+           return this;
+       };
+
+       Subscription.prototype = {
+           callFunctions: function (evt) {
+               if (this.opts.defer) {
+                   deferFunctions(this.funcs, evt);
+               } else {
+                   callFunctions(this.funcs, evt);
+               }
+           },
+           calculateSpecifierType: function () {
+               if (isObject(this.specifier)) {
+                   this.specifierType = "objects";
+                   this.specifier = getSubscriptionMarker(this.specifier);
+               } else {
+                   if (typeof this.specifier != "string") {
+                       throw new Error("specifier was neither an object nor a string");
+                   }
+                   if (isId(this.specifier)) {
+                       this.specifier = this.specifier.sub(/#/, "");
+                       this.specifierType = "ids";
+                   }
+                   if (isClass(this.specifier)) {
+                       this.specifierType = "classes";
+                       this.specifier = this.specifier.sub(/\./, "");
+                   }
+                   if (!this.specifierType) {
+                       this.specifierType = "rules";
+                   }
+               }
+           },
+           _cacheForRules: function () {
+               if (!subscriptions.rules[this.eventType]) {
+                   subscriptions.rules[this.eventType] = {};
+               }
+               var specifierObject = subscriptions.rules[this.eventType];
+               
+               if (!specifierObject[specifier]) {
+                   specifierObject[specifier] = [];
+               }
+               specifierObject[specifier].push(this);
+           },
+           cache: function () {
+               if (this.specifierType == "rules") {
+                   this._cacheForRules();
+               } else {
+                   if (!subscriptions[this.specifierType][this.specifier]) {
+                       subscriptions[this.specifierType][this.specifier] = {};
+                   }
+                   var specifierObject = subscriptions[this.specifierType][this.specifier];
+                   if (!specifierObject[this.eventType]) {
+                        specifierObject[this.eventType] = [];
+                    }
+                   
+                   specifierObject[this.eventType].push(this);
+               }
+           },
+           _uncacheForRules: function () {
+               var specifierObject = subscriptions.rules[this.eventType];
+               specifierObject.splice(specifierObject.indexOf(this), 1);
+           },
+           uncache: function () {
+               if (this.specifierType == "rules") {
+                   this._uncacheForRules();
+               } else {
+                   var specifierObject = subscriptions[this.specifierType][this.specifier][this.eventType];
+                   specifierObject.splice(specifierObject.indexOf(this), 1);
+               }
+           }
+       };
+       
+       var SubscriptionSet = function (specifiers, evtTypes, funcs, opts) {
+           this.specifiers = specifiers;
+           this.evtTypes = evtTypes;
+           this.funcs = funcs;
+           this.opts = opts || {};
+           this.subscriptions = [];
+           this.createSubscriptions();
+           return this;
+       };
+       
+       SubscriptionSet.prototype = {
+           createSubscriptions: function () {
+               eachElement(this.specifiers, function (specifier) {
+                   eachElement(this.evtTypes, function (evtType) {
+                       this.subscriptions.push(new Subscription(specifier, evtType, this.funcs, this.opts));
+                   }.bind(this));
+               }.bind(this));
+           },
+           unsubscribe: function () {
+               eachElement(this.subscriptions, function (subscription) {
+                   subscription.uncache();
+               });
+           }
+       };
     
     /** institue the subscriber:  '#' indicates an id, "." indicates a class, any other string is
         considered a CSS Selector.  You may also pass in an object (or DomElement).
@@ -493,47 +573,7 @@ MBX.EventHandler = (function () {
         @function
     */
     self.subscribe = function (specifiers, evtTypes, funcs, opts) {
-        if (!Object.isArray(specifiers)) {
-            specifiers = [specifiers];
-        }
-        if (!Object.isArray(evtTypes)) {
-            evtTypes = [evtTypes];
-        }
-        if (!Object.isArray(funcs)) {
-            funcs = [funcs];
-        }
-        opts = opts || {};
-        var referenceArray = [];
-    
-        specifiers.each(function (specifier) {
-            var specifierType;
-            if (isObject(specifier)) {
-                specifierType = "objects";
-                specifier = getSubscriptionMarker(specifier);
-            } else {
-                if (typeof specifier != "string") {
-                    throw new Error("specifier was neither an object nor a string");
-                }
-                if (isId(specifier)) {
-                    specifier = specifier.sub(/#/, "");
-                    specifierType = "ids";
-                }
-                if (isClass(specifier)) {
-                    specifierType = "classes";
-                    specifier = specifier.sub(/\./, "");
-                }
-            }
-            
-            //check if it matched id or class
-            if (specifierType) {
-                referenceArray = referenceArray.concat(createIdClassorObjectSubscription(specifierType, specifier, evtTypes, funcs, opts));
-            } else {
-                // we assume that anything not matching a class, id or object is a css selector rule
-                referenceArray = referenceArray.concat(createRulesSubscription(specifier, evtTypes, funcs, opts));
-            } //end to rules handling
-        }); // each specifier
-        // return the array that can be used to unsubscribe
-        return referenceArray;
+        return new SubscriptionSet(specifiers, evtTypes, funcs, opts);
     },
     
     /** Unsubscribe a previous subscribed handler
@@ -548,47 +588,8 @@ MBX.EventHandler = (function () {
         @name MBX.EventHandler.unsubscribe
         @function
     */
-    self.unsubscribe = function (handlerObjects) {
-        var locator;
-        handlerObjects.each(function (handlerObject) {
-            if (!(handlerObject.specifierType && handlerObject.eventType && handlerObject.specifier) || typeof handlerObject.func != 'function') {
-                throw new Error('bad unsubscribe object passed to EventHandler.unsubscribe');
-            }
-            if (handlerObject.specifierType != "rules") {
-                locator = subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType];
-                for (var i = 0, funcLen = locator.length; i < funcLen; ++i) {
-                    if (locator[i] == handlerObject.func) {
-                        subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType].splice(i, 1);
-                    }
-                }
-                locator = subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType].deferrable;
-                if (locator) {
-                    for (var i = 0, funcLen = locator.length; i < funcLen; ++i) {
-                        if (locator[i] == handlerObject.func) {
-                            subscriptions[handlerObject.specifierType][handlerObject.specifier][handlerObject.eventType].deferrable.splice(i, 1);
-                        }
-                    }
-                }
-            } else {
-                locator = subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier];
-                for (var i = 0, funcLen = locator.length; i < funcLen; ++i) {
-                    if (locator[i] == handlerObject.func) {
-                        subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier].splice(i, 1);
-                    }
-                }
-                locator = subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier].deferrable;
-                if (locator) {
-                    for (var i = 0, funcLen = locator.length; i < funcLen; ++i) {
-                        if (locator[i] == handlerObject.func) {
-                            subscriptions[handlerObject.specifierType][handlerObject.eventType][handlerObject.specifier].deferrable.splice(i, 1);
-                        }
-                    }
-                }
-            }
-    
-        });
-    
-        return true;
+    self.unsubscribe = function (handlerObject) {
+        handlerObject.unsubscribe();
     },
     
     /** fire a custom event of your choosing. Will notify any subscribers to that evt
