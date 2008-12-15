@@ -119,7 +119,11 @@ MBX.EventHandler = (function () {
         
         
         var ieSubscribe = function (elem, type, func) {
-            
+            var handler = function (evt) {
+                Event.extend(evt);
+                func(evt);
+            };
+            return elem.attachEvent("on" + type, func);
         };
         
         var captureSubscribe = function (elem, type, func) {
@@ -205,15 +209,16 @@ MBX.EventHandler = (function () {
     var normalizeEventType = function (evtType) {
         if (!(/focusin|focusout/.test(evtType))) {
             return evtType;
-        }
-        switch (evtType) {
-             case "focusin":
-                return "focus";
-                break;
-             case "focusout":
-                return "blur";
-                break;
-         }
+        } else {
+            switch (evtType) {
+                case "focusin":
+                   return "focus";
+                   break;
+                case "focusout":
+                   return "blur";
+                   break;
+            }
+        }     
     };
     
      /** Event bubbles up to the document where the listeners are and fires this function
@@ -234,7 +239,7 @@ MBX.EventHandler = (function () {
               } catch (e) {
               }
               if (targetElement) {
-                  functionsFromElementAndEvent(targetElement, evt, { evtType: evtType });
+                  functionsFromElementAndEvent(targetElement, evt, { eventType: evtType });
               }
          }
     };
