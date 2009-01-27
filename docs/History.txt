@@ -11,10 +11,16 @@
 * 1 major enhancement:
   * Better ie6 handling for prototype 1.6
   
-== 1.1 2008-5-31-08
+== 1.1 2008-5-31
 
 * 1 bug fix:
   * actually extend custom events
 
 * 1 major enhancement
   * Upgraded to use Prototype 1.6
+  
+== 1.4 2008-1-27
+
+* 2 major enhancements
+  * code refactor to object oriented
+  * smaller file size

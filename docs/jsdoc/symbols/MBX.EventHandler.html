@@ -195,6 +195,8 @@ ul.inheritsList
 	
 	<li><a href="../symbols/MBX.EventHandler.html">MBX.EventHandler</a></li>
 	
+	<li><a href="../symbols/MBX.EventHandler.EventBox.html">MBX.EventHandler.EventBox</a></li>
+	
 </ul>
 <hr />
 			<!-- end publish.classesIndex -->
@@ -204,14 +206,15 @@ ul.inheritsList
 <!-- ============================== class title ============================ -->
 			<h1 class="classTitle">
 				
-				Class MBX.EventHandler
+				Namespace MBX.EventHandler
 			</h1>
 
 <!-- ============================== class summary ========================== -->			
 			<p class="description">
 				
 			
-				EventHandler
+				
+
 				
 				
 					<br /><i>Defined in: </i> <a href="../symbols/src/_Users_Topper_Sites_mbox_motionbox-eventhandler_src_event_handler.js.html">event_handler.js</a>.
@@ -221,7 +224,7 @@ ul.inheritsList
 <!-- ============================== constructor summary ==================== -->			
 			
 			<table class="summaryTable" cellspacing="0" summary="A summary of the constructor documented in the class MBX.EventHandler.">
-				<caption>Class Summary</caption>
+				<caption>Namespace Summary</caption>
 				<thead>
 					<tr>
 						<th scope="col">Constructor Attributes</th>
@@ -233,7 +236,7 @@ ul.inheritsList
 						<td class="attributes">&nbsp;</td>
 						<td class="nameDescription" >
 							<div class="fixedFont">
-								<b><a href="../symbols/MBX.EventHandler.html#constructor">MBX.EventHandler</a></b>()
+								<b><a href="../symbols/MBX.EventHandler.html#constructor">MBX.EventHandler</a></b>
 							</div>
 							<div class="description"></div>
 						</td>
@@ -243,6 +246,35 @@ ul.inheritsList
 			
 
 <!-- ============================== properties summary ===================== -->
+			
+				
+				
+				<table class="summaryTable" cellspacing="0" summary="A summary of the fields documented in the class MBX.EventHandler.">
+					<caption>Field Summary</caption>
+					<thead>
+						<tr>
+							<th scope="col">Field Attributes</th>
+							<th scope="col">Field Name and Description</th>
+						</tr>
+					</thead>
+					<tbody>
+					
+						<tr>
+							<td class="attributes">&lt;static&gt; &nbsp;</td>
+							<td class="nameDescription">
+								<div class="fixedFont">
+								MBX.EventHandler.<b><a href="../symbols/MBX.EventHandler.html#.isIE">isIE</a></b>
+								</div>
+								<div class="description">This is provided as the last Prototype specific
+        hold out.</div>
+							</td>
+						</tr>
+					
+					</tbody>
+				</table>
+				
+				
+				
 			
 
 <!-- ============================== methods summary ======================== -->
@@ -262,6 +294,15 @@ ul.inheritsList
 						<tr>
 							<td class="attributes">&lt;static&gt; &nbsp;</td>
 							<td class="nameDescription">
+								<div class="fixedFont">MBX.EventHandler.<b><a href="../symbols/MBX.EventHandler.html#.debugSubscriptions">debugSubscriptions</a></b>()
+								</div>
+								<div class="description">return the object that holds the subscriptions, useful for debugging or testing</div>
+							</td>
+						</tr>
+					
+						<tr>
+							<td class="attributes">&lt;static&gt; &nbsp;</td>
+							<td class="nameDescription">
 								<div class="fixedFont">MBX.EventHandler.<b><a href="../symbols/MBX.EventHandler.html#.fireCustom">fireCustom</a></b>(theTarget, evt, opts)
 								</div>
 								<div class="description">fire a custom event of your choosing.</div>
@@ -271,9 +312,11 @@ ul.inheritsList
 						<tr>
 							<td class="attributes">&lt;static&gt; &nbsp;</td>
 							<td class="nameDescription">
-								<div class="fixedFont">MBX.EventHandler.<b><a href="../symbols/MBX.EventHandler.html#.onDomReady">onDomReady</a></b>(funcs)
+								<div class="fixedFont">MBX.EventHandler.<b><a href="../symbols/MBX.EventHandler.html#.onDomReady">onDomReady</a></b>(funcs, opts)
 								</div>
-								<div class="description">Accepts functions that will be fired as soon as the dom is ready (using prototypes dom:loaded event)</div>
+								<div class="description">Accepts functions that will be fired as soon as the dom is ready (using prototypes dom:loaded event)
+        By default, we fire onDomReady events using setTimeout
+        If the dom:loaded event has already ocurred, we simply call the function</div>
 							</td>
 						</tr>
 					
@@ -306,11 +349,11 @@ ul.inheritsList
 			
 			<div class="details"><a name="constructor"> </a>
 				<div class="sectionTitle">
-					Class Detail
+					Namespace Detail
 				</div>
 				
 				<div class="fixedFont">
-						<b>MBX.EventHandler</b>()
+						<b>MBX.EventHandler</b>
 				</div>
 				
 				<div class="description">
@@ -334,12 +377,72 @@ ul.inheritsList
 
 <!-- ============================== field details ========================== -->		
 			
+				<div class="sectionTitle">
+					Field Detail
+				</div>
+				
+					<a name=".isIE"> </a>
+					<div class="fixedFont">&lt;static&gt; 
+					
+					
+					<span class="light">MBX.EventHandler.</span><b>isIE</b>
+					
+					</div>
+					<div class="description">
+						This is provided as the last Prototype specific
+        hold out. Replace here to use other libraries
+						
+						
+					</div>
+					
+					
+
+						
+						
+						
+						
+
+					
+				
+			
 
 <!-- ============================== method details ========================= -->		
 			
 				<div class="sectionTitle">
 					Method Detail
 				</div>
+				
+					<a name=".debugSubscriptions"> </a>
+					<div class="fixedFont">&lt;static&gt; 
+					
+					<span class="light">{Object}</span>
+					<span class="light">MBX.EventHandler.</span><b>debugSubscriptions</b>()
+					
+					</div>
+					<div class="description">
+						return the object that holds the subscriptions, useful for debugging or testing
+						
+						
+					</div>
+					
+					
+					
+						
+						
+						
+						
+						
+							<dl class="detailList">
+							<dt class="heading">Returns:</dt>
+							
+								<dd><span class="light fixedFont">{Object}</span> private subscriptions object</dd>
+							
+							</dl>
+						
+						
+						
+
+					<hr />
 				
 					<a name=".fireCustom"> </a>
 					<div class="fixedFont">&lt;static&gt; 
@@ -350,18 +453,18 @@ ul.inheritsList
 					</div>
 					<div class="description">
 						fire a custom event of your choosing. Will notify any subscribers to that evt
-            You can also attach a payload to the event that will be added to the events
+        You can also attach a payload to the event that will be added to the events
 						
 						
 					</div>
 					
 					
 					
-					<pre class="code">              MBX.EventHandler.fireCustom($('element'), 'mycustomeevent');</pre>
+					<pre class="code">          MBX.EventHandler.fireCustom($('element'), 'mycustomeevent');</pre>
 					
-					<pre class="code">              MBX.EventHandler.fireCustom($("element"), 'mycustomevent', {
-                  theseAttributes: "will be attached to the event"
-              });</pre>
+					<pre class="code">          MBX.EventHandler.fireCustom($("element"), 'mycustomevent', {
+              theseAttributes: "will be attached to the event"
+          });</pre>
 					
 					
 					
@@ -370,10 +473,10 @@ ul.inheritsList
 							<dt class="heading">Parameters:</dt>
 							
 								<dt>
-									<span class="light fixedFont">{DomElement}</span> <b>theTarget</b>
+									<span class="light fixedFont">{Object}</span> <b>theTarget</b>
 									
 								</dt>
-								<dd>A dom element to fire the event on</dd>
+								<dd>A dom element, or arbotrary object to fire the event on</dd>
 							
 								<dt>
 									<span class="light fixedFont">{String}</span> <b>evt</b>
@@ -395,6 +498,13 @@ ul.inheritsList
 						
 						
 						
+							<dl class="detailList">
+							<dt class="heading">See:</dt>
+							
+								<dd><a href="../symbols/MBX.EventHandler.html#.subscribe">MBX.EventHandler.subscribe</a></dd>
+							
+							</dl>
+						
 
 					<hr />
 				
@@ -402,11 +512,13 @@ ul.inheritsList
 					<div class="fixedFont">&lt;static&gt; 
 					
 					
-					<span class="light">MBX.EventHandler.</span><b>onDomReady</b>(funcs)
+					<span class="light">MBX.EventHandler.</span><b>onDomReady</b>(funcs, opts)
 					
 					</div>
 					<div class="description">
 						Accepts functions that will be fired as soon as the dom is ready (using prototypes dom:loaded event)
+        By default, we fire onDomReady events using setTimeout
+        If the dom:loaded event has already ocurred, we simply call the function
 						
 						
 					</div>
@@ -422,6 +534,12 @@ ul.inheritsList
 									
 								</dt>
 								<dd>the function(s) to be fired at the Dom Ready event</dd>
+							
+								<dt>
+									<span class="light fixedFont">{Object}</span> <b>opts</b>
+									
+								</dt>
+								<dd>(optional) add { defer: false } to *not* fire the function using a setTimeout</dd>
 							
 							</dl>
 						
@@ -449,25 +567,24 @@ ul.inheritsList
 					
 					</div>
 					<div class="description">
-						institue the subscriber:  '#' indicates an id, "." indicates a class, anything else is considered
-            a CSS Selector
-            subscribe with:
+						institue the subscriber:  '#' indicates an id, "." indicates a class, any other string is
+        considered a CSS Selector.  You may also pass in an object (or DomElement).
+        subscribe with:
 						
 						
 					</div>
 					
 					
 					
-					<pre class="code">              MBX.EventHandler.subscribe(".myClass", "click", function (){ alert('hi'); });
-            or:</pre>
+					<pre class="code">          MBX.EventHandler.subscribe(".myClass", "click", function (){ alert('hi'); });</pre>
 					
-					<pre class="code">              MBX.EventHandler.subscribe("p#blah.cool", "click", function(evt) {console.dir(evt);});</pre>
+					<pre class="code">          MBX.EventHandler.subscribe("p#blah.cool", "click", function(evt) {console.dir(evt);});</pre>
 					
-					<pre class="code">              var someObj = {};
-              // the below will use a setTimeout to fire the function when "myEvent" is fired on someObj
-              MBX.EventHandler.subscribe(someObj, "myEvent", function () {alert('hi'); }, {defer: true});
-              
-            events may be custom events</pre>
+					<pre class="code">          var someObj = {};
+          // the below will use a setTimeout to fire the function when "myEvent" is fired on someObj
+          MBX.EventHandler.subscribe(someObj, "myEvent", function () {alert('hi'); }, {defer: true});
+          
+        events may be custom events</pre>
 					
 					
 					
@@ -485,7 +602,7 @@ ul.inheritsList
 									<span class="light fixedFont">{String or Array}</span> <b>evtTypes</b>
 									
 								</dt>
-								<dd>the types of events you want to subscribe to</dd>
+								<dd>the types of events you want to subscribe to (these can be arbitrary to allow custom events)</dd>
 							
 								<dt>
 									<span class="light fixedFont">{Function or Array}</span> <b>funcs</b>
@@ -517,7 +634,9 @@ ul.inheritsList
 							<dl class="detailList">
 							<dt class="heading">See:</dt>
 							
-								<dd>MBX.EventHandler.fireCustom.</dd>
+								<dd><a href="../symbols/MBX.EventHandler.html#.fireCustom">MBX.EventHandler.fireCustom</a></dd>
+							
+								<dd><a href="../symbols/MBX.EventHandler.html#.unsubscribe">MBX.EventHandler.unsubscribe</a></dd>
 							
 							</dl>
 						
@@ -539,8 +658,8 @@ ul.inheritsList
 					
 					
 					
-					<pre class="code">              var handlerObj = MBX.EventHandler.subscribe("#blah", "click", function () {alert('hi')!});
-              MBX.EventHandler.unsubscribe(handlerObj) // the subscription above is now removed</pre>
+					<pre class="code">          var handlerObj = MBX.EventHandler.subscribe("#blah", "click", function () {alert('hi')!});
+          MBX.EventHandler.unsubscribe(handlerObj) // the subscription above is now removed</pre>
 					
 					
 					
@@ -553,7 +672,7 @@ ul.inheritsList
 									
 								</dt>
 								<dd>the handler objects that were originally passed to the
-                                                    subscriptions</dd>
+                                                subscriptions</dd>
 							
 							</dl>
 						
@@ -562,6 +681,13 @@ ul.inheritsList
 						
 						
 						
+						
+							<dl class="detailList">
+							<dt class="heading">See:</dt>
+							
+								<dd><a href="../symbols/MBX.EventHandler.html#.subscribe">MBX.EventHandler.subscribe</a></dd>
+							
+							</dl>
 						
 
 					
@@ -574,7 +700,7 @@ ul.inheritsList
 <!-- ============================== footer ================================= -->
 		<div class="fineprint" style="clear:both">
 			
-			Documentation generated by <a href="http://www.jsdoctoolkit.org/" target="_blank">JsDoc Toolkit</a> 2.0.1 on Tue Jul 29 2008 22:18:36 GMT-0400 (EDT)
+			Documentation generated by <a href="http://www.jsdoctoolkit.org/" target="_blank">JsDoc Toolkit</a> 2.0.1 on Tue Jan 27 2009 15:05:26 GMT-0500 (EST)
 		</div>
 	</body>
 </html>

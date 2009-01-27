@@ -31,7 +31,7 @@
  *  @author Richard Allaway, Topping Bowers, Baldur Gudbjornsson, Matt Royal
  *
  *  MBX.event_handler is an implementation of event delegation based on the
- *  prototype library.
+ *  prototype library. It also supports events on objects
  *  Readme:  http://code.google.com/p/motionbox/wiki/EventHandlerDocumentation
  *  API:
  *
@@ -63,10 +63,26 @@ if (!("MBX" in window)) {
 /**  @class EventHandler
      @name MBX.EventHandler */
 MBX.EventHandler = (function () {
-    /** @namespace */
+    /** @namespace 
+        @name MBX.EventHandler
+    */
     var self = {};
+    /** 
+        This is provided as the last Prototype specific
+        hold out. Replace here to use other libraries
+        @name MBX.EventHandler.isIE
+    */
     self.isIE = Prototype.Browser.IE;
     
+    /** @namespace 
+        @name MBX.EventHandler.EventBox
+        @description
+          The event box is a pluggable "box" that by default
+          uses Prototype to extend events and grab elements from
+          the events.  Extending the EventHandler to support other
+          javascript libraries only requires swapping out this box
+          and exposing the same public functions
+    */
     self.EventBox = (function () {
         var self = {};
         
@@ -129,7 +145,23 @@ MBX.EventHandler = (function () {
         var captureSubscribe = function (elem, type, func) {
             return elem.addEventListener(type, func, true);
         };
-        
+        /**
+            This is the main DOM subscription (the thing that subscribes
+            to the document object). If you are replacing the EventBox
+            then this function should should take an optional opts argument
+            which supports "ieOnly" or "capture."  ieOnly will make the
+            subscription ieOnly and capture will use event capture
+            as opposed to bubbling (for blur and focus events mostly)
+            
+            @param {HTMLElement} elem The html element to subscribe to
+            @param {String} type The type of event (eg 'click')
+            @param {Function} func The function to fire
+            @param {Object} opts (optional)
+            
+            @returns {Object} An event subscription
+            @function
+            @name MBX.EventHandler.EventBox.subscribe
+        */
         self.subscribe = function (elem, type, func, opts) {
             opts = opts || {};
             if (opts.ieOnly) {
@@ -142,6 +174,14 @@ MBX.EventHandler = (function () {
             return $(elem).observe(type, func);
         };
         
+        /** Given an event, this function should return
+            the element that is associated with the event
+            
+            @param {Event} evt The event
+            @returns {HTMLElement} The element that triggered the event
+            @function
+            @name MBX.EventHandler.EventBox.elementFromEvent
+        */
         self.elementFromEvent = function (evt) {
             var targ;
             if (!evt) {
@@ -161,6 +201,12 @@ MBX.EventHandler = (function () {
             return targ;
         };
         
+        /** should return an observer on domReady
+            @param {Function} func The function to fire
+            @returns {Observer} The event observer on domReady
+            @function
+            @name MBX.EventHandler.EventBox.subscribeToDomReady
+        */
         self.subscribeToDomReady = function (func) {
             document.observe("dom:loaded", func);
         };
@@ -460,122 +506,125 @@ MBX.EventHandler = (function () {
         window.attachEvent('onbeforeunload', destroyObservers);
     }
     
-    /** @constructor */
-       var Subscription = function (specifier, eventType, funcs, opts) {
-           funcs = makeArray(funcs);
+    /** 
+     The Object that holds a subcription.
+     Contains a specifier (object, id, class), type (eg 'click'), and functions
+     @constructor
+    */
+    var Subscription = function (specifier, eventType, funcs, opts) {
+        funcs = makeArray(funcs);
+        
+        this.specifier = specifier;
+        this.eventType = eventType;
+        this.funcs = funcs;
+        this.opts = opts || {};
+        this.calculateSpecifierType();
+        this.cache();
+        return this;
+    };
+    
+    Subscription.prototype = {
+        callFunctions: function (evt) {
+            if (this.opts.defer) {
+                deferFunctions(this.funcs, evt);
+            } else {
+                callFunctions(this.funcs, evt);
+            }
+        },
+        calculateSpecifierType: function () {
+            if (isObject(this.specifier)) {
+                this.specifierType = "objects";
+                this.specifier = getSubscriptionMarker(this.specifier);
+            } else {
+                if (typeof this.specifier != "string") {
+                    throw new Error("specifier was neither an object nor a string");
+                }
+                if (isId(this.specifier)) {
+                    this.specifier = this.specifier.sub(/#/, "");
+                    this.specifierType = "ids";
+                }
+                if (isClass(this.specifier)) {
+                    this.specifierType = "classes";
+                    this.specifier = this.specifier.sub(/\./, "");
+                }
+                if (!this.specifierType) {
+                    this.specifierType = "rules";
+                }
+            }
+        },
+        _cacheForRules: function () {
+            if (!subscriptions.rules[this.eventType]) {
+                subscriptions.rules[this.eventType] = {};
+            }
+            var specifierObject = subscriptions.rules[this.eventType];
+            
+            if (!specifierObject[specifier]) {
+                specifierObject[specifier] = [];
+            }
+            specifierObject[specifier].push(this);
+        },
+        cache: function () {
+            if (this.specifierType == "rules") {
+                this._cacheForRules();
+            } else {
+                if (!subscriptions[this.specifierType][this.specifier]) {
+                    subscriptions[this.specifierType][this.specifier] = {};
+                }
+                var specifierObject = subscriptions[this.specifierType][this.specifier];
+                if (!specifierObject[this.eventType]) {
+                     specifierObject[this.eventType] = [];
+                 }
+                
+                specifierObject[this.eventType].push(this);
+            }
+        },
+        _uncacheForRules: function () {
+            var specifierObject = subscriptions.rules[this.eventType];
+            specifierObject.splice(specifierObject.indexOf(this), 1);
+        },
+        uncache: function () {
+            if (this.specifierType == "rules") {
+                this._uncacheForRules();
+            } else {
+                var specifierObject = subscriptions[this.specifierType][this.specifier][this.eventType];
+                specifierObject.splice(specifierObject.indexOf(this), 1);
+            }
+        }
+    };
            
-           this.specifier = specifier;
-           this.eventType = eventType;
-           this.funcs = funcs;
-           this.opts = opts || {};
-           this.calculateSpecifierType();
-           this.cache();
-           return this;
-       };
-
-       Subscription.prototype = {
-           callFunctions: function (evt) {
-               if (this.opts.defer) {
-                   deferFunctions(this.funcs, evt);
-               } else {
-                   callFunctions(this.funcs, evt);
-               }
-           },
-           calculateSpecifierType: function () {
-               if (isObject(this.specifier)) {
-                   this.specifierType = "objects";
-                   this.specifier = getSubscriptionMarker(this.specifier);
-               } else {
-                   if (typeof this.specifier != "string") {
-                       throw new Error("specifier was neither an object nor a string");
-                   }
-                   if (isId(this.specifier)) {
-                       this.specifier = this.specifier.sub(/#/, "");
-                       this.specifierType = "ids";
-                   }
-                   if (isClass(this.specifier)) {
-                       this.specifierType = "classes";
-                       this.specifier = this.specifier.sub(/\./, "");
-                   }
-                   if (!this.specifierType) {
-                       this.specifierType = "rules";
-                   }
-               }
-           },
-           _cacheForRules: function () {
-               if (!subscriptions.rules[this.eventType]) {
-                   subscriptions.rules[this.eventType] = {};
-               }
-               var specifierObject = subscriptions.rules[this.eventType];
-               
-               if (!specifierObject[specifier]) {
-                   specifierObject[specifier] = [];
-               }
-               specifierObject[specifier].push(this);
-           },
-           cache: function () {
-               if (this.specifierType == "rules") {
-                   this._cacheForRules();
-               } else {
-                   if (!subscriptions[this.specifierType][this.specifier]) {
-                       subscriptions[this.specifierType][this.specifier] = {};
-                   }
-                   var specifierObject = subscriptions[this.specifierType][this.specifier];
-                   if (!specifierObject[this.eventType]) {
-                        specifierObject[this.eventType] = [];
-                    }
-                   
-                   specifierObject[this.eventType].push(this);
-               }
-           },
-           _uncacheForRules: function () {
-               var specifierObject = subscriptions.rules[this.eventType];
-               specifierObject.splice(specifierObject.indexOf(this), 1);
-           },
-           uncache: function () {
-               if (this.specifierType == "rules") {
-                   this._uncacheForRules();
-               } else {
-                   var specifierObject = subscriptions[this.specifierType][this.specifier][this.eventType];
-                   specifierObject.splice(specifierObject.indexOf(this), 1);
-               }
-           }
-       };
-              
-       var SubscriptionSet = function (specifiers, evtTypes, funcs, opts) {
-           specifiers = makeArray(specifiers);
-           evtTypes = makeArray(evtTypes);
-           
-           this.specifiers = specifiers;
-           this.evtTypes = evtTypes;
-           this.funcs = funcs;
-           this.opts = opts || {};
-           this.subscriptions = [];
-           this.createSubscriptions();
-           return this;
-       };
-       
-       SubscriptionSet.prototype = {
-           createSubscriptions: function () {
-               for (var i = 0; i < this.specifiers.length; ++i) {
-                   for (var j = 0; j < this.evtTypes.length; ++j) {
-                       this.subscriptions.push(new Subscription(this.specifiers[i], this.evtTypes[j], this.funcs, this.opts));
-                   }
-               }
-           },
-           unsubscribe: function () {
-               eachElement(this.subscriptions, function (subscription) {
-                   subscription.uncache();
-               });
-           }
-       };
+    var SubscriptionSet = function (specifiers, evtTypes, funcs, opts) {
+        specifiers = makeArray(specifiers);
+        evtTypes = makeArray(evtTypes);
+        
+        this.specifiers = specifiers;
+        this.evtTypes = evtTypes;
+        this.funcs = funcs;
+        this.opts = opts || {};
+        this.subscriptions = [];
+        this.createSubscriptions();
+        return this;
+    };
+    
+    SubscriptionSet.prototype = {
+        createSubscriptions: function () {
+            for (var i = 0; i < this.specifiers.length; ++i) {
+                for (var j = 0; j < this.evtTypes.length; ++j) {
+                    this.subscriptions.push(new Subscription(this.specifiers[i], this.evtTypes[j], this.funcs, this.opts));
+                }
+            }
+        },
+        unsubscribe: function () {
+            eachElement(this.subscriptions, function (subscription) {
+                subscription.uncache();
+            });
+        }
+    };
     
     /** institue the subscriber:  '#' indicates an id, "." indicates a class, any other string is
         considered a CSS Selector.  You may also pass in an object (or DomElement).
         subscribe with:
         @example
           MBX.EventHandler.subscribe(".myClass", "click", function (){ alert('hi'); });
-        or:
         @example
           MBX.EventHandler.subscribe("p#blah.cool", "click", function(evt) {console.dir(evt);});
         @example
@@ -595,7 +644,7 @@ MBX.EventHandler = (function () {
         @see MBX.EventHandler.fireCustom
         @see MBX.EventHandler.unsubscribe
         
-        @mame MBX.EventHandler.subscribe
+        @name MBX.EventHandler.subscribe
         @function
     */
     self.subscribe = function (specifiers, evtTypes, funcs, opts) {
