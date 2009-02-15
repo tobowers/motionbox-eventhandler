@@ -350,8 +350,8 @@ MBX.EventHandler = (function () {
         executes an array of functions sending the event to the function
     */
     var callFunctions = function (functionsToCall, evt) {
-        while (functionsToCall.length > 0) {
-            functionsToCall.pop()(evt);
+        for (var i = functionsToCall.length - 1; i >= 0; i--) {
+            functionsToCall[i](evt);
         }
     };
         
@@ -375,12 +375,12 @@ MBX.EventHandler = (function () {
     */
     var deferFunctions = function (functionsToCall, evt) {
         var func;
-        while (functionsToCall.length > 0) {
-            func = wrap(functionsToCall.pop(), function (orig) {
+        for (var i = functionsToCall.length - 1; i >= 0; i--) {
+            func = wrap(functionsToCall[i], function (orig) {
                 orig(evt);
             });
             setTimeout(func, 0);
-        }
+        };
     };
     
     /** if there is a listener defined for the evtType, then
