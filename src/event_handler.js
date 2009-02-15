@@ -362,12 +362,12 @@ MBX.EventHandler = (function () {
             var __method = this, args = Array.prototype.slice.call(arguments), object = args.shift();
             return function() {
               return __method.apply(object, args.concat(Array.prototype.slice.call(arguments)));
-            }
+            };
         };
         
         return function() {
           return wrapper.apply(this, [__method.bind(this)].concat(Array.prototype.slice.call(arguments)));
-        }
+        };
     };
     
     /**
@@ -478,11 +478,11 @@ MBX.EventHandler = (function () {
     };
     
     var isId = function (specifierString) {
-        return /^\#[\w-]+$/.test(specifierString);
+        return (/^\#[\w-]+$/).test(specifierString);
     };
     
     var isClass = function (specifierString) {
-        return /^\.[\w-]+$/.test(specifierString);
+        return (/^\.[\w-]+$/).test(specifierString);
     };
     
     var isObject = function (specifier) {
@@ -649,7 +649,7 @@ MBX.EventHandler = (function () {
     */
     self.subscribe = function (specifiers, evtTypes, funcs, opts) {
         return new SubscriptionSet(specifiers, evtTypes, funcs, opts);
-    },
+    };
     
     /** Unsubscribe a previous subscribed handler
         @param {Object} handlerObjects the handler objects that were originally passed to the
@@ -665,7 +665,7 @@ MBX.EventHandler = (function () {
     */
     self.unsubscribe = function (handlerObject) {
         handlerObject.unsubscribe();
-    },
+    };
     
     /** fire a custom event of your choosing. Will notify any subscribers to that evt
         You can also attach a payload to the event that will be added to the events
@@ -697,7 +697,7 @@ MBX.EventHandler = (function () {
                 callFunctionsFromIdOrObject("objects", getSubscriptionMarker(theTarget), evt, opts);
             }
         }
-    },
+    };
     
     /** Accepts functions that will be fired as soon as the dom is ready (using prototypes dom:loaded event)
         By default, we fire onDomReady events using setTimeout
@@ -725,16 +725,16 @@ MBX.EventHandler = (function () {
         } else {
             return MBX.EventHandler.subscribe(document, "dom:loaded", funcs, { defer: opts.defer });
         }
-    },
+    };
     
     //TEST FUNCTION ONLY!
     self.dirSubscriptions = function () {
         console.dir(subscriptions);
-    },
+    };
     
     self.dirEventListeners = function () {
         console.dir(eventListeners);
-    },
+    };
     
     /** return the object that holds the subscriptions, useful for debugging or testing
         @returns {Object} private subscriptions object
@@ -743,7 +743,7 @@ MBX.EventHandler = (function () {
     */
     self.debugSubscriptions = function () {
         return subscriptions;
-    }
+    };
 
     return self;
 
