@@ -11,14 +11,24 @@ Screw.Unit(function() {
             // this removes the necessity to explicitly test unsubscribes
             eventSubscriptions.each(function (eventObject) {
                 MBX.EventHandler.unsubscribe(eventObject);
-            })
+            });
+        });
+        
+        it("should allow two events to be fired", function () {
+            var clickWasCalled, sub;
+            clickWasCalled = 0;
+            sub = MBX.EventHandler.subscribe(".href_class", "click", function () { clickWasCalled++; });
+            eventSubscriptions.push(sub);
+            TH.click($$(".href_class").first());
+            TH.click($$(".href_class").first());
+            expect(clickWasCalled).to(equal, 2);
         });
         
         describe("subscribing to a class", function () {
             var clickWasCalled, sub;
             before(function () {
                 clickWasCalled = 0;
-                sub = MBX.EventHandler.subscribe(".href_class", "click", function () { clickWasCalled++ })
+                sub = MBX.EventHandler.subscribe(".href_class", "click", function () { clickWasCalled++; });
                 eventSubscriptions.push(sub);
             });
             
@@ -28,7 +38,7 @@ Screw.Unit(function() {
             });
             
             it("should bubble up to the elements above the element receiving an event", function () {
-                eventSubscriptions.push(MBX.EventHandler.subscribe(".wrapper", "click", function () { clickWasCalled++ }));
+                eventSubscriptions.push(MBX.EventHandler.subscribe(".wrapper", "click", function () { clickWasCalled++; }));
                 TH.click($$(".href_class").first());
                 expect(clickWasCalled).to(equal, 2);
             });
@@ -45,7 +55,7 @@ Screw.Unit(function() {
             var clickWasCalled, sub;
             before(function () {
                 clickWasCalled = 0;
-                sub = MBX.EventHandler.subscribe("#href_id", "click", function () { clickWasCalled++ });
+                sub = MBX.EventHandler.subscribe("#href_id", "click", function () { clickWasCalled++; });
                 eventSubscriptions.push(sub);
             });
             
@@ -55,7 +65,7 @@ Screw.Unit(function() {
             });
             
             it("should bubble up to the elements above the element receiving an event", function () {
-                eventSubscriptions.push(MBX.EventHandler.subscribe(".wrapper", "click", function () { clickWasCalled++ }));
+                eventSubscriptions.push(MBX.EventHandler.subscribe(".wrapper", "click", function () { clickWasCalled++; }));
                 TH.click($("href_id"));
                 expect(clickWasCalled).to(equal, 2);
             });
@@ -71,7 +81,7 @@ Screw.Unit(function() {
             var MyCustomEvent, sub;
             before(function () {
                 MyCustomEvent = 0;
-                sub = MBX.EventHandler.subscribe("#href_id", "MyCustomEvent", function () { MyCustomEvent++ })
+                sub = MBX.EventHandler.subscribe("#href_id", "MyCustomEvent", function () { MyCustomEvent++; });
                 eventSubscriptions.push(sub);
             });
             
@@ -81,14 +91,14 @@ Screw.Unit(function() {
             });
             
             it("should bubble up to the elements above the element receiving the event", function () {
-                eventSubscriptions.push(MBX.EventHandler.subscribe(".wrapper", "MyCustomEvent", function () { MyCustomEvent++ }));
+                eventSubscriptions.push(MBX.EventHandler.subscribe(".wrapper", "MyCustomEvent", function () { MyCustomEvent++; }));
                 MBX.EventHandler.fireCustom($("href_id"), "MyCustomEvent");
                 expect(MyCustomEvent).to(equal, 2);
             });
             
             it("should allow a payload of objects", function () {
                 var receivedEvent = {};
-                eventSubscriptions.push(MBX.EventHandler.subscribe("#href_id", "MyCustomEvent", function (evt) { receivedEvent = evt }));
+                eventSubscriptions.push(MBX.EventHandler.subscribe("#href_id", "MyCustomEvent", function (evt) { receivedEvent = evt; }));
                 MBX.EventHandler.fireCustom($("href_id"), "MyCustomEvent", {
                     someAttr: 'received'
                 });
@@ -130,7 +140,7 @@ Screw.Unit(function() {
                 
                 it("should allow a payload of objects", function () {
                     var receivedEvent = {};
-                    eventSubscriptions.push(MBX.EventHandler.subscribe(someObj, "MyCustomEvent", function (evt) { receivedEvent = evt }));
+                    eventSubscriptions.push(MBX.EventHandler.subscribe(someObj, "MyCustomEvent", function (evt) { receivedEvent = evt; }));
                     MBX.EventHandler.fireCustom(someObj, "MyCustomEvent", {
                         someAttr: 'received'
                     });
@@ -165,14 +175,14 @@ Screw.Unit(function() {
             describe("after dom:ready has already fired", function () {
                 it('should fire the function right away if dom:ready has already happened', function (me) {
                     var fired = false;
-                    var func = function () { fired = true };
+                    var func = function () { fired = true; };
                     MBX.EventHandler.onDomReady(func, { defer: false });
                     expect(fired).to(be_true);
                 });
                 
                 it("should defer when no options are passed in", function (me) {
                     var fired = false;
-                    var func = function () { fired = true };
+                    var func = function () { fired = true; };
                     MBX.EventHandler.onDomReady(func);
                     expect(fired).to_not(be_true);
                     
@@ -243,7 +253,7 @@ Screw.Unit(function() {
             var sub;
             var myOtherCustomEvent = 0;
             before(function () {
-                sub = MBX.EventHandler.subscribe(someObj, "MyCustomEvent", function () { MyCustomEvent++ }, { defer: true });
+                sub = MBX.EventHandler.subscribe(someObj, "MyCustomEvent", function () { MyCustomEvent++; }, { defer: true });
                 eventSubscriptions.push(sub);
             });
             
@@ -254,7 +264,7 @@ Screw.Unit(function() {
             
             it("should have fired by this thread", function () {
                 expect(MyCustomEvent).to(equal, 1); 
-            })
+            });
             
             it("should still support event payloads", function (me) {
                 var evtReceived = {};
@@ -288,9 +298,9 @@ Screw.Unit(function() {
             describe("an event with both deferred and regular subscriptions", function () {
                 var MyOtherCustomEvent = 0;
                 before(function () {
-                    sub = MBX.EventHandler.subscribe(someObj, "someOtherEvent", function () { MyOtherCustomEvent++ }, { defer: true });
+                    sub = MBX.EventHandler.subscribe(someObj, "someOtherEvent", function () { MyOtherCustomEvent++; }, { defer: true });
                     eventSubscriptions.push(sub);
-                    sub = MBX.EventHandler.subscribe(someObj, "someOtherEvent", function () { MyOtherCustomEvent++ });
+                    sub = MBX.EventHandler.subscribe(someObj, "someOtherEvent", function () { MyOtherCustomEvent++; });
                     eventSubscriptions.push(sub);
                 });
                 

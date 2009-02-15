@@ -350,9 +350,9 @@ MBX.EventHandler = (function () {
         executes an array of functions sending the event to the function
     */
     var callFunctions = function (functionsToCall, evt) {
-        for (var i = functionsToCall.length - 1; i >= 0; i--) {
+        for (var i = functionsToCall.length - 1; i >= 0; i--){
             functionsToCall[i](evt);
-        }
+        };
     };
         
     var wrap = function(func, wrapper) {
