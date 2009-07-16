@@ -1,9 +1,8 @@
 Screw.Unit(function() {
     describe('MBX.EventHandler', function() {
-        var eventSubscriptions;
+        var eventSubscriptions = [];
         
         before(function () {
-            eventSubscriptions = [];
             TH.insertDomMock("event_handler");
         });
         
@@ -12,6 +11,7 @@ Screw.Unit(function() {
             eventSubscriptions.each(function (eventObject) {
                 MBX.EventHandler.unsubscribe(eventObject);
             });
+            eventSubscriptions = [];
         });
         
         it("should allow two events to be fired", function () {
