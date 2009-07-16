@@ -138,6 +138,12 @@ Screw.Unit(function() {
                     expect(called).to(equal, 1);
                 });
                 
+                it("should respond twice to events'", function () {
+                    MBX.EventHandler.fireCustom(someObj, 'myEvent');
+                    MBX.EventHandler.fireCustom(someObj, 'myEvent');
+                    expect(called).to(equal, 2);
+                });
+                
                 it("should allow a payload of objects", function () {
                     var receivedEvent = {};
                     eventSubscriptions.push(MBX.EventHandler.subscribe(someObj, "MyCustomEvent", function (evt) { receivedEvent = evt; }));
