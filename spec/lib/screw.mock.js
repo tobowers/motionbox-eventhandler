@@ -66,12 +66,19 @@ var TH = (function () {
         @function
     */
     publicObj.click = function(el) {
+        if (!(el.click || el.dispatchEvent)) {
+            el = document.getElementById(el);
+        }
         if(jQuery.browser.msie) {
           el.click();
         } else {
-          var evt = document.createEvent("MouseEvents");
-          evt.initEvent("click", true, true);
-          el.dispatchEvent(evt);
+          if ("Prototype" in window) {
+            var evt = document.createEvent("MouseEvents");
+            evt.initEvent("click", true, true);
+            el.dispatchEvent(evt);
+          } else {
+              jQuery(el).trigger("click");
+          }
         }
     };
     
