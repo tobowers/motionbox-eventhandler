@@ -183,59 +183,59 @@ Screw.Unit(function() {
 
             });
         });
-//
-//        describe("focus events", function () {
-//            var evtFired;
-//
-//            it("should fire just like any other event", function () {
-//                $("input_el").blur();
-//                evtFired = false;
-//
-//                eventSubscriptions.push(MBX.EventHandler.subscribe("#input_el", "focus", function (evt) { evtFired = true; }));
-//
-//                $("input_el").focus();
-//                expect(evtFired).to(be_true);
-//            });
-//
-//            it("should also bubble up", function () {
-//                $("no_focus").focus();
-//                var wrapperEvtFired = false;
-//                eventSubscriptions.push(MBX.EventHandler.subscribe(".wrapper", "focus", function () { wrapperEvtFired = true; }));
-//                $("input_el").focus();
-//                expect(wrapperEvtFired).to(be_true);
-//            });
-//
-//        });
-//
-//        describe("blur events", function () {
-//
-//            it("should fire just like any other event", function (me) {
-//                var evtFired;
-//                $("input_el").focus();
-//                evtFired = false;
-//
-//                var subscription = MBX.EventHandler.subscribe("#input_el", "blur", function () { evtFired = true; });
-//
-//
-//                $("input_el").blur();
-//
-//                // focusein events in ie seem to not bubble synchronously... so we have to wait here
-//                using(me).wait(4).and_then(function () {
-//                    expect(evtFired).to(be_true);
-//                    MBX.EventHandler.unsubscribe(subscription);
-//                });
-//
-//            });
-//
-//            it("should also bubble up", function () {
-//                $("input_el").focus();
-//                var wrapperEvtFired = false;
-//                eventSubscriptions.push(MBX.EventHandler.subscribe(".wrapper", "blur", function () { wrapperEvtFired = true; }));
-//                $("input_el").blur();
-//                expect(wrapperEvtFired).to(be_true);
-//
-//            });
-//        });
+
+        describe("focus events", function () {
+            var evtFired;
+
+            it("should fire just like any other event", function () {
+                document.getElementById("input_el").blur();
+                evtFired = false;
+
+                eventSubscriptions.push(MBX.EventHandler.subscribe("#input_el", "focus", function (evt) { evtFired = true; }));
+
+                document.getElementById("input_el").focus();
+                expect(evtFired).to(be_true);
+            });
+
+            it("should also bubble up", function () {
+                document.getElementById("no_focus").focus();
+                var wrapperEvtFired = false;
+                eventSubscriptions.push(MBX.EventHandler.subscribe(".wrapper", "focus", function () { wrapperEvtFired = true; }));
+                document.getElementById("input_el").focus();
+                expect(wrapperEvtFired).to(be_true);
+            });
+
+        });
+
+        describe("blur events", function () {
+
+            it("should fire just like any other event", function (me) {
+                var evtFired;
+                document.getElementById("input_el").focus();
+                evtFired = false;
+
+                var subscription = MBX.EventHandler.subscribe("#input_el", "blur", function () { evtFired = true; });
+
+
+                document.getElementById("input_el").blur();
+
+                // focusein events in ie seem to not bubble synchronously... so we have to wait here
+                using(me).wait(4).and_then(function () {
+                    expect(evtFired).to(be_true);
+                    MBX.EventHandler.unsubscribe(subscription);
+                });
+
+            });
+
+            it("should also bubble up", function () {
+                document.getElementById("input_el").focus();
+                var wrapperEvtFired = false;
+                eventSubscriptions.push(MBX.EventHandler.subscribe(".wrapper", "blur", function () { wrapperEvtFired = true; }));
+                document.getElementById("input_el").blur();
+                expect(wrapperEvtFired).to(be_true);
+
+            });
+        });
 //
 //        describe("deferring functions", function () {
 //            var MyCustomEvent = 0;

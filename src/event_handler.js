@@ -204,9 +204,9 @@ MBX.EventHandler = (function () {
         eventListeners[evtType] = EventBox.bind(document, evtType, handleEvent);
     });
 
-    if (isIe) {
+    if (!isIe) {
         /** We get focus and blur to look like they're bubbling by using event capturing
-            rathe than event bubbling
+            rather than event bubbling
         */
         each(nonBubblingBlurFocusEvents, function (evtType) {
             eventListeners[evtType] = document.addEventListener(evtType, handleEvent, true);
